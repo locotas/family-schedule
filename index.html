@@ -8,568 +8,7 @@
 <meta name="theme-color" content="#4a7c59">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<style>
-  :root {
-    --bg: #f5f5f0;
-    --card: #ffffff;
-    --text: #2d2d2d;
-    --text-light: #666;
-    --border: #e0e0d8;
-    --accent: #4a7c59;
-    --accent-hover: #3d6a4b;
-    --header-bg: #4a7c59;
-    --header-text: #fff;
-    --today: #ff6b6b;
-    --shadow: 0 2px 8px rgba(0,0,0,0.08);
-    --done-bg: #f0f7f0;
-    --paused-bg: #faf5ee;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
-    background: var(--bg); color: var(--text); line-height: 1.6;
-  }
-
-  /* ===== Header ===== */
-  header {
-    background: var(--header-bg); color: var(--header-text);
-    padding: 10px 16px; display: flex; align-items: center;
-    justify-content: space-between; box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-    position: sticky; top: 0; z-index: 100; flex-wrap: wrap; gap: 6px;
-  }
-  .header-left { display: flex; align-items: center; gap: 10px; }
-  header h1 { font-size: 1.1rem; font-weight: 600; }
-  .sync-dot {
-    width: 8px; height: 8px; border-radius: 50%; display: inline-block;
-    background: #999; transition: background 0.3s;
-  }
-  .sync-dot.connected { background: #4caf50; }
-  .sync-dot.error { background: #f44336; }
-  .sync-dot.syncing { background: #ff9800; animation: pulse 1s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
-
-  .current-user-badge {
-    display: none; align-items: center; gap: 4px;
-    padding: 3px 10px; border-radius: 12px; font-size: 0.7rem;
-    font-weight: 600; color: white; background: rgba(255,255,255,0.25);
-    cursor: pointer;
-  }
-  .current-user-badge.active { display: flex; }
-  .current-user-badge .badge-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-  }
-
-  .header-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .year-nav { display: flex; align-items: center; gap: 4px; }
-  .year-nav button {
-    background: rgba(255,255,255,0.2); border: none; color: white;
-    width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
-    font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
-  }
-  .year-nav button:hover { background: rgba(255,255,255,0.35); }
-  .year-nav span { font-size: 1rem; font-weight: 600; min-width: 44px; text-align: center; }
-
-  .hdr-btn {
-    background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
-    color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem;
-    cursor: pointer; transition: background 0.2s; white-space: nowrap;
-  }
-  .hdr-btn:hover { background: rgba(255,255,255,0.35); }
-  .hdr-btn.primary { background: #fff; color: var(--accent); border-color: #fff; font-weight: 600; }
-  .hdr-btn.primary:hover { background: #eee; }
-
-  /* ===== Mascot ===== */
-  .mascot-area {
-    background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 50%, #fff8e1 100%);
-    padding: 14px 18px; display: flex; align-items: center; gap: 16px;
-    border-bottom: 1px solid var(--border); position: relative;
-  }
-  .mascot-scene { position: relative; width: 90px; height: 80px; flex-shrink: 0; }
-  .mascot {
-    position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
-    width: 55px; height: 45px; background: #7dc97f;
-    border-radius: 50% 50% 45% 45%; transition: all 0.5s ease;
-    animation: mascotBounce 2s ease-in-out infinite;
-  }
-  .mascot-eyes {
-    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
-    width: 32px; display: flex; justify-content: space-between;
-  }
-  .mascot-eye { width: 7px; height: 7px; background: #2d2d2d; border-radius: 50%; transition: all 0.3s; }
-  .mascot-mouth {
-    position: absolute; top: 24px; left: 50%; transform: translateX(-50%);
-    width: 10px; height: 5px; border-bottom: 2px solid #2d2d2d;
-    border-radius: 0 0 50% 50%; transition: all 0.3s;
-  }
-  .mascot-cheeks {
-    position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-    width: 42px; display: flex; justify-content: space-between; pointer-events: none;
-  }
-  .mascot-cheek { width: 8px; height: 5px; background: rgba(255,150,150,0.5); border-radius: 50%; transition: opacity 0.3s; }
-
-  .mascot-state-great .mascot { background: #7dc97f; }
-  .mascot-state-great .mascot-mouth { border-radius: 0 0 50% 50%; height: 7px; width: 12px; }
-  .mascot-state-great .mascot-cheek { opacity: 1; }
-  .mascot-state-good .mascot { background: #a5d6a7; }
-  .mascot-state-good .mascot-mouth { height: 5px; }
-  .mascot-state-good .mascot-cheek { opacity: 0.7; }
-  .mascot-state-ok .mascot { background: #c8d6a0; }
-  .mascot-state-ok .mascot-mouth { border-radius: 0; height: 0; border-bottom: 2px solid #2d2d2d; width: 8px; }
-  .mascot-state-ok .mascot-cheek { opacity: 0.3; }
-  .mascot-state-sad .mascot { background: #d4c87a; }
-  .mascot-state-sad .mascot-mouth { border-bottom: none; border-top: 2px solid #2d2d2d; border-radius: 50% 50% 0 0; height: 4px; width: 8px; }
-  .mascot-state-sad .mascot-cheek { opacity: 0; }
-  .mascot-state-bad .mascot { background: #c9a86a; animation-duration: 4s; }
-  .mascot-state-bad .mascot-mouth { border-bottom: none; border-top: 2px solid #2d2d2d; border-radius: 50% 50% 0 0; height: 5px; width: 10px; }
-  .mascot-state-bad .mascot-cheek { opacity: 0; }
-  .mascot-state-bad .mascot-eye { height: 4px; }
-
-  @keyframes mascotBounce {
-    0%,100%{transform:translateX(-50%) translateY(0)}
-    50%{transform:translateX(-50%) translateY(-3px)}
-  }
-  .mascot-ground { position: absolute; bottom: 0; left: 0; right: 0; height: 8px; background: #8d6e3f; border-radius: 3px; }
-  .mascot-grass { position: absolute; bottom: 6px; left: 0; right: 0; height: 7px; display: flex; justify-content: space-around; }
-  .grass-blade { width: 5px; height: 7px; background: #4caf50; border-radius: 50% 50% 0 0; }
-  .grass-blade:nth-child(odd) { transform: rotate(-10deg); height: 8px; }
-  .grass-blade:nth-child(even) { transform: rotate(8deg); height: 6px; }
-  .mascot-decorations { position: absolute; bottom: 12px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 4px; pointer-events: none; }
-  .deco-flower { font-size: 12px; opacity: 0; transition: opacity 0.5s; }
-  .deco-flower.visible { opacity: 1; }
-
-  .mascot-info { flex: 1; min-width: 0; }
-  .mascot-message { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-bottom: 2px; }
-  .mascot-sub { font-size: 0.7rem; color: var(--text-light); margin-bottom: 6px; }
-  .hearts-row { display: flex; gap: 3px; margin-bottom: 4px; }
-  .heart { font-size: 1rem; transition: all 0.3s; }
-  .heart.empty { opacity: 0.2; filter: grayscale(1); }
-  .mascot-stats { display: flex; gap: 14px; font-size: 0.65rem; color: var(--text-light); }
-  .mascot-stat { display: flex; align-items: center; gap: 3px; }
-  .stat-num { font-weight: 700; font-size: 0.8rem; color: var(--text); }
-
-  /* ===== Main ===== */
-  .main-container { padding: 14px; overflow-x: auto; }
-  .gantt-wrapper {
-    background: var(--card); border-radius: 12px; box-shadow: var(--shadow);
-    overflow: clip; min-width: 1100px;
-  }
-  .gantt-header {
-    display: grid; grid-template-columns: 300px 1fr;
-    border-bottom: 2px solid var(--border); background: var(--card);
-  }
-  .gantt-header-label {
-    padding: 8px 12px; font-weight: 600; font-size: 0.75rem;
-    color: var(--text-light); border-right: 1px solid var(--border);
-    display: flex; align-items: center; gap: 6px;
-  }
-  .gantt-header-label select {
-    font-size: 0.7rem; padding: 2px 4px; border: 1px solid var(--border);
-    border-radius: 4px; background: var(--bg);
-  }
-  .months-header { display: grid; grid-template-columns: repeat(12, 1fr); }
-  .month-col {
-    text-align: center; padding: 5px 2px; font-size: 0.7rem; font-weight: 600;
-    color: var(--text-light); border-right: 1px solid var(--border);
-    cursor: pointer; transition: background 0.2s;
-  }
-  .month-col:last-child { border-right: none; }
-  .month-col:hover { background: #f0f0ea; }
-  .month-col .month-name { display: block; }
-  .month-col .month-days { font-size: 0.55rem; font-weight: 400; color: #999; }
-
-  .filter-bar {
-    padding: 5px 12px; display: flex; align-items: center; gap: 6px;
-    font-size: 0.7rem; color: var(--text-light); background: #fafaf7;
-    border-bottom: 1px solid var(--border);
-  }
-  .filter-bar .task-count { margin-left: auto; }
-  .sort-btn {
-    background: var(--bg); border: 1px solid var(--border); padding: 2px 7px;
-    border-radius: 4px; font-size: 0.65rem; cursor: pointer; color: var(--text);
-  }
-  .sort-btn:hover, .sort-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-
-  .gantt-body-wrapper { position: relative; }
-  .gantt-body { min-height: 200px; }
-
-  .today-line-global {
-    position: absolute; top: 0; bottom: 0; width: 2px;
-    background: var(--today); z-index: 20; pointer-events: none;
-  }
-  .today-line-global::before {
-    content: '今日'; position: absolute; top: 4px; left: 50%;
-    transform: translateX(-50%); font-size: 0.5rem; color: var(--today);
-    font-weight: 600; white-space: nowrap;
-  }
-
-  .gantt-row {
-    display: grid; grid-template-columns: 300px 1fr;
-    border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s;
-  }
-  .gantt-row:hover { background: #fafaf7; }
-  .gantt-row:last-child { border-bottom: none; }
-  .gantt-row.is-done { background: var(--done-bg); opacity: 0.7; }
-  .gantt-row.is-paused { background: var(--paused-bg); opacity: 0.6; }
-
-  .task-label {
-    padding: 6px 8px; border-right: 1px solid var(--border);
-    display: flex; align-items: center; gap: 6px; font-size: 0.75rem;
-  }
-  .task-check {
-    width: 16px; height: 16px; border-radius: 50%; border: 2px solid #ccc;
-    cursor: pointer; flex-shrink: 0; display: flex; align-items: center;
-    justify-content: center; font-size: 0.6rem; color: transparent;
-    background: white; transition: all 0.2s;
-  }
-  .task-check:hover { border-color: var(--accent); }
-  .task-check.checked { background: var(--accent); border-color: var(--accent); color: white; }
-
-  .task-cat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-  .task-info { flex: 1; min-width: 0; }
-  .task-name {
-    font-weight: 500; white-space: nowrap; overflow: hidden;
-    text-overflow: ellipsis; font-size: 0.75rem;
-  }
-  .task-name.done-text { text-decoration: line-through; color: #aaa; }
-  .task-meta { display: flex; align-items: center; gap: 4px; font-size: 0.6rem; color: var(--text-light); flex-wrap: wrap; }
-  .task-member-badge {
-    display: inline-block; padding: 0 4px; border-radius: 6px;
-    font-size: 0.55rem; font-weight: 600; color: white; line-height: 1.4;
-  }
-  .task-modified { font-style: italic; color: #aaa; font-size: 0.55rem; }
-
-  .task-timeline {
-    position: relative; display: grid;
-    grid-template-columns: repeat(12, 1fr); min-height: 36px;
-  }
-  .month-cell { border-right: 1px solid var(--border); }
-  .month-cell:last-child { border-right: none; }
-  .task-bar {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    height: 16px; border-radius: 8px; z-index: 10; opacity: 0.85;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.5rem; color: white; font-weight: 600;
-    overflow: hidden; white-space: nowrap; padding: 0 3px;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-    min-width: 8px;
-  }
-  .task-bar:hover { opacity: 1; }
-  .task-bar.is-done { opacity: 0.4; }
-  .task-bar.is-paused { opacity: 0.4; background-image: repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(255,255,255,0.3) 3px,rgba(255,255,255,0.3) 6px)!important; }
-
-  .legend {
-    padding: 8px 14px; display: flex; flex-wrap: wrap; gap: 10px;
-    border-top: 1px solid var(--border); background: #fafaf7;
-    border-radius: 0 0 12px 12px;
-  }
-  .legend-item {
-    display: flex; align-items: center; gap: 3px; font-size: 0.65rem;
-    color: var(--text-light); cursor: pointer; padding: 2px 4px; border-radius: 4px;
-  }
-  .legend-item:hover { background: #eee; }
-  .legend-dot { width: 7px; height: 7px; border-radius: 50%; }
-
-  /* ===== Month Zoom ===== */
-  .month-zoom { display:none; background:var(--card); border-radius:12px; box-shadow:var(--shadow); margin-top:14px; overflow:hidden; min-width:1100px; }
-  .month-zoom.active { display:block; }
-  .month-zoom-header { padding:10px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); background:#fafaf7; }
-  .month-zoom-header h3 { font-size:0.95rem; }
-  .month-zoom-close { background:none; border:none; font-size:1.1rem; cursor:pointer; color:var(--text-light); padding:4px 8px; }
-  .zoom-task-row { display:grid; grid-template-columns:160px 1fr; border-bottom:1px solid var(--border); font-size:0.7rem; }
-  .zoom-task-label { padding:5px 8px; border-right:1px solid var(--border); display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; }
-  .zoom-task-timeline { display:grid; position:relative; min-height:26px; }
-  .zoom-day-col { text-align:center; padding:3px 0; font-size:0.55rem; color:var(--text-light); border-right:1px solid #f0f0ea; min-width:24px; }
-  .zoom-day-col.weekend { background:#fdf2f2; }
-  .zoom-day-col.today { background:#fff0f0; font-weight:700; color:var(--today); }
-  .zoom-day-cell { border-right:1px solid #f0f0ea; min-width:24px; }
-  .zoom-day-cell.weekend { background:#fdf2f2; }
-  .zoom-bar { position:absolute; top:50%; transform:translateY(-50%); height:14px; border-radius:7px; z-index:5; opacity:0.8; }
-
-  /* ===== Modals ===== */
-  .modal-overlay {
-    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4);
-    z-index:200; justify-content:center; align-items:center; backdrop-filter:blur(2px);
-  }
-  .modal-overlay.active { display:flex; }
-  .modal {
-    background:var(--card); border-radius:16px; padding:22px; width:92%;
-    max-width:480px; box-shadow:0 20px 60px rgba(0,0,0,0.2);
-    animation:modalIn 0.2s ease-out; max-height:90vh; overflow-y:auto;
-  }
-  @keyframes modalIn { from{opacity:0;transform:translateY(20px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
-  .modal h2 { font-size:1rem; margin-bottom:14px; }
-  .form-group { margin-bottom:12px; }
-  .form-group label { display:block; font-size:0.7rem; font-weight:600; color:var(--text-light); margin-bottom:3px; }
-  .form-group input, .form-group select, .form-group textarea {
-    width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:8px;
-    font-size:0.8rem; font-family:inherit; background:var(--bg);
-  }
-  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(74,124,89,0.1);
-  }
-  .form-group textarea { resize:vertical; min-height:45px; }
-  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .form-check { display:flex; align-items:center; gap:6px; margin-top:2px; }
-  .form-check input[type="checkbox"] { width:auto; }
-  .form-check label { margin-bottom:0; font-weight:400; font-size:0.75rem; color:var(--text); }
-  .modal-actions { display:flex; gap:6px; justify-content:flex-end; margin-top:16px; }
-  .btn {
-    padding:7px 16px; border-radius:8px; font-size:0.8rem; font-weight:500;
-    cursor:pointer; border:none; transition:all 0.2s;
-  }
-  .btn-primary { background:var(--accent); color:white; }
-  .btn-primary:hover { background:var(--accent-hover); }
-  .btn-secondary { background:var(--bg); color:var(--text); border:1px solid var(--border); }
-  .btn-secondary:hover { background:#e8e8e0; }
-  .btn-danger { background:#e74c3c; color:white; }
-  .btn-danger:hover { background:#c0392b; }
-
-  /* ===== Wizard ===== */
-  .wizard-step { display:none; }
-  .wizard-step.active { display:block; }
-  .wizard-options { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0; }
-  .wizard-opt {
-    padding:10px; border:2px solid var(--border); border-radius:10px;
-    text-align:center; cursor:pointer; font-size:0.8rem;
-  }
-  .wizard-opt:hover { border-color:var(--accent); background:#f0f7f0; }
-  .wizard-opt.selected { border-color:var(--accent); background:#e8f5e9; }
-  .wizard-opt .opt-icon { font-size:1.3rem; display:block; margin-bottom:2px; }
-  .wizard-progress { display:flex; gap:5px; margin-bottom:12px; }
-  .wizard-dot { width:7px; height:7px; border-radius:50%; background:var(--border); }
-  .wizard-dot.active { background:var(--accent); }
-
-  /* ===== Templates ===== */
-  .template-list { max-height:350px; overflow-y:auto; }
-  .template-group { margin-bottom:12px; }
-  .template-group h4 { font-size:0.75rem; color:var(--text-light); margin-bottom:4px; padding-bottom:3px; border-bottom:1px solid var(--border); }
-  .template-item { display:flex; align-items:center; justify-content:space-between; padding:6px 8px; border-radius:6px; margin-bottom:3px; font-size:0.75rem; }
-  .template-item:hover { background:var(--bg); }
-  .template-item-info { display:flex; align-items:center; gap:6px; }
-  .template-item-add { background:var(--accent); color:white; border:none; padding:3px 8px; border-radius:10px; font-size:0.65rem; cursor:pointer; }
-  .template-item-add:hover { background:var(--accent-hover); }
-  .template-item-add.added { background:#aaa; cursor:default; }
-
-  /* ===== Members ===== */
-  .member-list { margin-bottom:12px; }
-  .member-item { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px; margin-bottom:3px; background:var(--bg); }
-  .member-color { width:20px; height:20px; border-radius:50%; flex-shrink:0; border:2px solid white; box-shadow:0 1px 3px rgba(0,0,0,0.15); }
-  .member-name-display { flex:1; font-size:0.8rem; font-weight:500; }
-  .member-remove { background:none; border:none; color:#ccc; cursor:pointer; font-size:0.9rem; padding:2px 4px; border-radius:4px; }
-  .member-remove:hover { color:#e74c3c; background:#ffeaea; }
-  .add-member-row { display:flex; gap:6px; align-items:center; }
-  .add-member-row input { flex:1; padding:7px 9px; border:1px solid var(--border); border-radius:8px; font-size:0.8rem; background:var(--bg); }
-  .add-member-row input[type="color"] { width:32px; height:32px; padding:2px; border-radius:50%; cursor:pointer; }
-
-  /* ===== Data ===== */
-  .data-section { margin-bottom:16px; }
-  .data-section h3 { font-size:0.85rem; margin-bottom:6px; }
-  .data-section p { font-size:0.7rem; color:var(--text-light); margin-bottom:6px; }
-  .drop-zone {
-    border:2px dashed var(--border); border-radius:12px; padding:24px;
-    text-align:center; cursor:pointer; color:var(--text-light); font-size:0.8rem;
-  }
-  .drop-zone:hover { border-color:var(--accent); background:#f0f7f0; }
-
-  /* ===== Settings ===== */
-  .settings-section { margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--border); }
-  .settings-section:last-child { border-bottom:none; }
-  .settings-section h3 { font-size:0.85rem; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
-  .settings-section p { font-size:0.7rem; color:var(--text-light); margin-bottom:8px; line-height:1.5; }
-  .room-code-display {
-    background:var(--bg); padding:12px; border-radius:8px; text-align:center;
-    font-size:1.4rem; font-weight:700; letter-spacing:4px; margin:8px 0;
-    font-family:monospace; user-select:all;
-  }
-  .settings-status {
-    display:inline-flex; align-items:center; gap:4px; padding:3px 8px;
-    border-radius:10px; font-size:0.65rem; font-weight:600;
-  }
-  .settings-status.on { background:#e8f5e9; color:#2e7d32; }
-  .settings-status.off { background:#fce4ec; color:#c62828; }
-
-  .steps-list { padding-left:20px; font-size:0.7rem; color:var(--text-light); line-height:2; margin:8px 0; }
-
-  /* ===== Activity Log ===== */
-  .activity-list { max-height:400px; overflow-y:auto; }
-  .activity-item {
-    display:flex; gap:8px; padding:8px 0; border-bottom:1px solid var(--border);
-    font-size:0.75rem;
-  }
-  .activity-item:last-child { border-bottom:none; }
-  .activity-icon { font-size:1rem; flex-shrink:0; width:24px; text-align:center; }
-  .activity-content { flex:1; }
-  .activity-desc { color:var(--text); }
-  .activity-time { font-size:0.6rem; color:#aaa; margin-top:2px; }
-  .activity-who { font-weight:600; color:var(--accent); }
-
-  /* ===== Menu Dropdown ===== */
-  .menu-dropdown-wrapper { position: relative; }
-  .menu-dropdown {
-    display: none; position: absolute; top: 100%; right: 0; margin-top: 6px;
-    background: var(--card); border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.18);
-    min-width: 150px; z-index: 150; overflow: hidden;
-  }
-  .menu-dropdown.open { display: block; }
-  .menu-dropdown button {
-    display: block; width: 100%; padding: 10px 16px; border: none; background: none;
-    font-size: 0.8rem; text-align: left; cursor: pointer; color: var(--text);
-    font-family: inherit; border-bottom: 1px solid var(--border);
-  }
-  .menu-dropdown button:last-child { border-bottom: none; }
-  .menu-dropdown button:hover { background: var(--bg); }
-
-  /* ===== Search Input ===== */
-  .filter-search {
-    padding: 2px 7px; border: 1px solid var(--border); border-radius: 4px;
-    font-size: 0.7rem; font-family: inherit; background: white; width: 120px;
-  }
-  .filter-search:focus { outline: none; border-color: var(--accent); }
-
-  /* ===== Toast ===== */
-  .toast-container {
-    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-    z-index: 300; pointer-events: none;
-  }
-  .toast {
-    background: #323232; color: white; padding: 12px 20px; border-radius: 10px;
-    font-size: 0.85rem; display: flex; align-items: center; gap: 12px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.25); pointer-events: auto;
-    animation: toastIn 0.3s ease-out;
-  }
-  @keyframes toastIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-  .toast-undo {
-    background: var(--accent); color: white; border: none; padding: 4px 12px;
-    border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600;
-    font-family: inherit;
-  }
-  .toast-undo:hover { background: var(--accent-hover); }
-
-  /* ===== Mascot Collapse ===== */
-  .mascot-toggle {
-    position: absolute; top: 6px; right: 10px; background: rgba(0,0,0,0.08);
-    border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
-    font-size: 0.7rem; display: flex; align-items: center; justify-content: center;
-    color: var(--text-light); z-index: 5;
-  }
-  .mascot-toggle:hover { background: rgba(0,0,0,0.15); }
-  .mascot-area.collapsed {
-    padding: 6px 18px; gap: 10px;
-  }
-  .mascot-area.collapsed .mascot-scene { display: none; }
-  .mascot-area.collapsed .mascot-sub,
-  .mascot-area.collapsed .mascot-stats { display: none; }
-  .mascot-area.collapsed .hearts-row { margin-bottom: 0; }
-  .mascot-area.collapsed .mascot-message { margin-bottom: 0; font-size: 0.8rem; }
-  .mascot-area.collapsed .mascot-info { display: flex; align-items: center; gap: 10px; }
-
-  /* ===== Upcoming Tasks ===== */
-  .upcoming-section {
-    padding: 12px 14px; background: var(--card); border-radius: 12px;
-    box-shadow: var(--shadow); margin-bottom: 14px;
-  }
-  .upcoming-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 8px;
-  }
-  .upcoming-header h3 { font-size: 0.9rem; font-weight: 600; }
-  .upcoming-toggle {
-    background: var(--bg); border: 1px solid var(--border); padding: 2px 8px;
-    border-radius: 4px; font-size: 0.65rem; cursor: pointer; color: var(--text);
-    font-family: inherit;
-  }
-  .upcoming-toggle:hover { background: var(--accent); color: white; border-color: var(--accent); }
-  .upcoming-list { display: flex; flex-direction: column; gap: 4px; }
-  .upcoming-item {
-    display: flex; align-items: center; gap: 8px; padding: 5px 8px;
-    border-radius: 6px; font-size: 0.75rem; background: var(--bg);
-  }
-  .upcoming-item .task-cat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-  .upcoming-date { font-size: 0.65rem; color: var(--text-light); min-width: 55px; }
-  .upcoming-name { flex: 1; font-weight: 500; }
-  .upcoming-check {
-    width: 16px; height: 16px; border-radius: 50%; border: 2px solid #ccc;
-    cursor: pointer; flex-shrink: 0; display: flex; align-items: center;
-    justify-content: center; font-size: 0.6rem; color: transparent;
-    background: white; transition: all 0.2s;
-  }
-  .upcoming-check:hover { border-color: var(--accent); }
-  .upcoming-check.checked { background: var(--accent); border-color: var(--accent); color: white; }
-
-  /* ===== Dark Mode ===== */
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1a1a1a; --card: #2d2d2d; --text: #e0e0e0; --text-light: #aaa;
-      --border: #444; --header-bg: #2e5e3e; --shadow: 0 2px 8px rgba(0,0,0,0.3);
-      --done-bg: #1e2e1e; --paused-bg: #2e2a1e;
-    }
-  }
-  body.dark {
-    --bg: #1a1a1a; --card: #2d2d2d; --text: #e0e0e0; --text-light: #aaa;
-    --border: #444; --header-bg: #2e5e3e; --shadow: 0 2px 8px rgba(0,0,0,0.3);
-    --done-bg: #1e2e1e; --paused-bg: #2e2a1e;
-  }
-  body.dark .mascot-area {
-    background: linear-gradient(135deg, #1e2e1e 0%, #252e1e 50%, #2e2a1e 100%);
-  }
-  body.dark .filter-bar, body.dark .legend { background: #252525; }
-  body.dark .month-col:hover { background: #353535; }
-  body.dark .gantt-row:hover { background: #353535; }
-  body.dark .task-check { background: #444; }
-  body.dark .sort-btn { background: #353535; border-color: #555; color: var(--text); }
-  body.dark .filter-search { background: #353535; color: var(--text); border-color: #555; }
-  body.dark .form-group input, body.dark .form-group select, body.dark .form-group textarea {
-    background: #353535; color: var(--text); border-color: #555;
-  }
-  body.dark .menu-dropdown { background: #353535; }
-  body.dark .menu-dropdown button { color: var(--text); }
-  body.dark .menu-dropdown button:hover { background: #444; }
-  body.dark .upcoming-item { background: #353535; }
-  body.dark .zoom-day-col.weekend, body.dark .zoom-day-cell.weekend { background: #2a2020; }
-
-  /* ===== Mobile Card View ===== */
-  .mobile-card-view { display: none; }
-
-  @media(max-width:768px){
-    header{padding:8px 10px}header h1{font-size:0.95rem}.main-container{padding:8px}
-    .modal{padding:16px}.form-row{grid-template-columns:1fr}
-    .mascot-area{padding:10px;gap:10px}.mascot-scene{width:65px;height:60px}
-    .mascot{width:40px;height:34px}
-    .gantt-wrapper { display: none; }
-    .month-zoom { display: none !important; }
-    .mobile-card-view { display: block; }
-    .mobile-card-view .mobile-card {
-      background: var(--card); border-radius: 10px; padding: 10px 12px;
-      margin-bottom: 8px; box-shadow: var(--shadow); display: flex;
-      align-items: center; gap: 10px;
-    }
-    .mobile-card .mc-check {
-      width: 20px; height: 20px; border-radius: 50%; border: 2px solid #ccc;
-      cursor: pointer; flex-shrink: 0; display: flex; align-items: center;
-      justify-content: center; font-size: 0.7rem; color: transparent;
-      background: white; transition: all 0.2s;
-    }
-    .mobile-card .mc-check.checked { background: var(--accent); border-color: var(--accent); color: white; }
-    .mobile-card .mc-cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .mobile-card .mc-info { flex: 1; min-width: 0; }
-    .mobile-card .mc-name { font-size: 0.8rem; font-weight: 500; }
-    .mobile-card .mc-name.done-text { text-decoration: line-through; color: #aaa; }
-    .mobile-card .mc-meta { font-size: 0.65rem; color: var(--text-light); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-    .mobile-card .mc-member {
-      display: inline-block; padding: 0 5px; border-radius: 6px;
-      font-size: 0.55rem; font-weight: 600; color: white; line-height: 1.5;
-    }
-    .mobile-filter-bar {
-      padding: 8px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
-      font-size: 0.7rem; margin-bottom: 8px;
-    }
-    .mobile-filter-bar select, .mobile-filter-bar input {
-      padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px;
-      font-size: 0.7rem; background: var(--card); font-family: inherit;
-    }
-    .filter-search { width: 100px; }
-  }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -595,6 +34,12 @@
         <button onclick="openMemberModal();closeMenuDropdown()">&#128106; 家族</button>
         <button onclick="openTemplateModal();closeMenuDropdown()">&#128203; テンプレ</button>
         <button onclick="openActivityModal();closeMenuDropdown()">&#128338; 履歴</button>
+        <button onclick="openShoppingModal();closeMenuDropdown()">&#128722; 買い物リスト</button>
+        <button onclick="openStockModal();closeMenuDropdown()">&#128230; ストック管理</button>
+        <button onclick="openApplianceModal();closeMenuDropdown()">&#127968; 家電管理</button>
+        <button onclick="openCostModal();closeMenuDropdown()">&#128176; コスト</button>
+        <button onclick="openReportModal();closeMenuDropdown()">&#128202; レポート</button>
+        <button onclick="openRewardsModal();closeMenuDropdown()">&#127873; ポイント&ごほうび</button>
         <button onclick="openDataModal();closeMenuDropdown()">&#128190; データ</button>
         <button onclick="openSettingsModal();closeMenuDropdown()">&#9881;&#65039; 設定</button>
         <button onclick="toggleDarkMode();closeMenuDropdown()" id="darkModeMenuItem">&#127769; ダークモード</button>
@@ -629,6 +74,7 @@
       <div class="mascot-stat">残り <span class="stat-num" id="statRemain">0</span></div>
       <div class="mascot-stat">期限切れ <span class="stat-num" id="statOverdue">0</span></div>
     </div>
+    <div class="points-display" id="pointsDisplay"></div>
   </div>
 </div>
 
@@ -676,12 +122,17 @@
         <div class="form-group"><label>開始日</label><input type="date" id="taskStart" required></div>
         <div class="form-group"><label>終了日</label><input type="date" id="taskEnd" required></div>
       </div>
+      <div class="form-row">
+        <div class="form-group"><label>費用（円）</label><input type="number" id="taskCost" min="0" placeholder="0"></div>
+        <div class="form-group"><label>関連家電</label><select id="taskAppliance"><option value="">なし</option></select></div>
+      </div>
       <div class="form-group">
         <div class="form-check"><input type="checkbox" id="taskRecurring"><label for="taskRecurring">毎年繰り返す</label></div>
       </div>
       <div class="form-group">
         <div class="form-check"><input type="checkbox" id="taskPaused"><label for="taskPaused">一時停止中</label></div>
       </div>
+      <div class="form-group"><label>必要なもの（カンマ区切り）</label><input type="text" id="taskShoppingItems" placeholder="例: ブラックキャップ, 殺虫剤"></div>
       <div class="form-group"><label>メモ</label><textarea id="taskMemo" placeholder="詳細やメモがあれば..."></textarea></div>
       <div id="taskModifiedInfo" style="font-size:0.65rem;color:#aaa;margin-bottom:8px;display:none"></div>
       <div class="modal-actions">
@@ -691,6 +142,15 @@
         <button type="submit" class="btn btn-primary">保存</button>
       </div>
     </form>
+    <!-- Feature 5: Comments Section -->
+    <div class="comments-section" id="commentsSection" style="display:none">
+      <h3>💬 コメント</h3>
+      <div class="comment-list" id="taskCommentsList"></div>
+      <div class="comment-input-row">
+        <input type="text" id="taskCommentInput" placeholder="コメントを入力..." onkeydown="if(event.key==='Enter'){event.preventDefault();addTaskComment()}">
+        <button class="btn btn-primary" type="button" onclick="addTaskComment()">送信</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -794,6 +254,17 @@
       <button class="btn btn-secondary" onclick="toggleReminders()" id="btnReminder">通知をオンにする</button>
     </div>
 
+    <div class="settings-section">
+      <h3>🌤️ 天気設定</h3>
+      <p>次にやることに天気情報を表示します（屋外タスク向け）</p>
+      <div class="form-row">
+        <div class="form-group"><label>緯度</label><input type="number" id="weatherLat" step="0.0001" value="35.6762"></div>
+        <div class="form-group"><label>経度</label><input type="number" id="weatherLon" step="0.0001" value="139.6503"></div>
+      </div>
+      <p style="font-size:0.6rem;color:#aaa">東京: 35.6762, 139.6503 / 大阪: 34.6937, 135.5023 / 名古屋: 35.1815, 136.9066</p>
+      <button class="btn btn-secondary" onclick="saveWeatherSettings()">天気設定を保存</button>
+    </div>
+
     <div class="modal-actions"><button class="btn btn-secondary" onclick="closeSettingsModal()">閉じる</button></div>
   </div>
 </div>
@@ -853,1168 +324,133 @@
   </div>
 </div>
 
+<!-- Feature 1: Cost Modal -->
+<div class="modal-overlay" id="costModalOverlay" onclick="if(event.target===this)closeCostModal()">
+  <div class="modal" style="max-width:520px">
+    <h2>💰 コスト管理</h2>
+    <div id="costContent"></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeCostModal()">閉じる</button></div>
+  </div>
+</div>
+
+<!-- Feature 2: Shopping List Modal -->
+<div class="modal-overlay" id="shoppingModalOverlay" onclick="if(event.target===this)closeShoppingModal()">
+  <div class="modal" style="max-width:520px">
+    <h2>🛒 買い物リスト</h2>
+    <div class="shopping-add-row">
+      <input type="text" id="shoppingNewItem" placeholder="アイテムを追加..." onkeydown="if(event.key==='Enter'){event.preventDefault();addShoppingItem()}">
+      <button class="btn btn-primary" onclick="addShoppingItem()" style="padding:7px 12px">追加</button>
+    </div>
+    <div id="shoppingListContent" style="max-height:400px;overflow-y:auto"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="clearCheckedShopping()">完了を消去</button>
+      <button class="btn btn-secondary" onclick="closeShoppingModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- Feature 3: Report Modal -->
+<div class="modal-overlay" id="reportModalOverlay" onclick="if(event.target===this)closeReportModal()">
+  <div class="modal" style="max-width:520px">
+    <h2>📊 年間レポート</h2>
+    <div id="reportContent"></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeReportModal()">閉じる</button></div>
+  </div>
+</div>
+
+<!-- Feature 4: Appliance Modal -->
+<div class="modal-overlay" id="applianceModalOverlay" onclick="if(event.target===this)closeApplianceModal()">
+  <div class="modal" style="max-width:560px">
+    <h2>🏠 家電・設備管理</h2>
+    <button class="btn btn-primary" onclick="showApplianceForm()" style="margin-bottom:10px">+ 家電を登録</button>
+    <div id="applianceForm" style="display:none;background:var(--bg);padding:12px;border-radius:10px;margin-bottom:12px">
+      <h3 id="applianceFormTitle" style="font-size:0.85rem;margin-bottom:8px">家電登録</h3>
+      <div class="form-group"><label>名前</label><input type="text" id="appName" required placeholder="例: リビングエアコン"></div>
+      <div class="form-row">
+        <div class="form-group"><label>カテゴリ</label><select id="appCategory">
+          <option value="エアコン">エアコン</option><option value="洗濯機">洗濯機</option>
+          <option value="冷蔵庫">冷蔵庫</option><option value="給湯器">給湯器</option>
+          <option value="食洗機">食洗機</option><option value="テレビ">テレビ</option>
+          <option value="電子レンジ">電子レンジ</option><option value="掃除機">掃除機</option>
+          <option value="乾燥機">乾燥機</option><option value="その他">その他</option>
+        </select></div>
+        <div class="form-group"><label>設置場所</label><input type="text" id="appLocation" placeholder="例: リビング"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>購入日</label><input type="date" id="appPurchaseDate"></div>
+        <div class="form-group"><label>保証期限</label><input type="date" id="appWarrantyEnd"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>メンテ周期（月）</label><input type="number" id="appMaintenanceCycle" min="0" placeholder="例: 6"></div>
+        <div class="form-group"><label>メモ</label><input type="text" id="appMemo" placeholder="型番など"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="hideApplianceForm()">キャンセル</button>
+        <button class="btn btn-primary" onclick="saveAppliance()">保存</button>
+      </div>
+    </div>
+    <div id="applianceListContent" style="max-height:350px;overflow-y:auto"></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeApplianceModal()">閉じる</button></div>
+  </div>
+</div>
+
+<!-- Feature 6: Rewards Modal -->
+<div class="modal-overlay" id="rewardsModalOverlay" onclick="if(event.target===this)closeRewardsModal()">
+  <div class="modal" style="max-width:520px">
+    <h2>🎁 ポイント & ごほうび</h2>
+    <div style="background:var(--bg);padding:10px;border-radius:8px;margin-bottom:12px">
+      <p style="font-size:0.7rem;color:var(--text-light);margin-bottom:6px">タスク完了でポイント獲得！期限前なら1.5倍、遅れると0.5倍</p>
+      <div class="shopping-add-row">
+        <input type="text" id="rewardNewName" placeholder="ごほうび名（例: 外食）">
+        <input type="number" id="rewardNewCost" placeholder="pt" style="width:70px" min="1">
+        <button class="btn btn-primary" onclick="addReward()" style="padding:7px 12px">追加</button>
+      </div>
+    </div>
+    <div id="rewardsContent"></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeRewardsModal()">閉じる</button></div>
+  </div>
+</div>
+
+<!-- Feature 7: Stock Modal -->
+<div class="modal-overlay" id="stockModalOverlay" onclick="if(event.target===this)closeStockModal()">
+  <div class="modal" style="max-width:560px">
+    <h2>📦 ストック管理</h2>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button class="btn btn-primary" onclick="showStockForm()">+ ストック登録</button>
+      <button class="btn btn-secondary" onclick="addLowStockToShopping()">🛒 不足分を買い物リストへ</button>
+    </div>
+    <div id="stockForm" style="display:none;background:var(--bg);padding:12px;border-radius:10px;margin-bottom:12px">
+      <h3 id="stockFormTitle" style="font-size:0.85rem;margin-bottom:8px">ストック登録</h3>
+      <div class="form-group"><label>名前</label><input type="text" id="stockName" required placeholder="例: トイレットペーパー"></div>
+      <div class="form-row">
+        <div class="form-group"><label>カテゴリ</label><input type="text" id="stockCategory" placeholder="例: 日用品"></div>
+        <div class="form-group"><label>単位</label><select id="stockUnit">
+          <option value="個">個</option><option value="本">本</option><option value="箱">箱</option>
+          <option value="袋">袋</option><option value="パック">パック</option><option value="枚">枚</option>
+          <option value="セット">セット</option><option value="kg">kg</option><option value="L">L</option>
+        </select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>現在の在庫</label><input type="number" id="stockCurrent" min="0" value="0"></div>
+        <div class="form-group"><label>最低在庫</label><input type="number" id="stockMin" min="0" value="1"></div>
+      </div>
+      <div class="form-group"><label>最終購入日</label><input type="date" id="stockLastPurchase"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="hideStockForm()">キャンセル</button>
+        <button class="btn btn-primary" onclick="saveStockItem()">保存</button>
+      </div>
+    </div>
+    <div id="stockListContent" style="max-height:350px;overflow-y:auto"></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeStockModal()">閉じる</button></div>
+  </div>
+</div>
+
 <div class="toast-container" id="toastContainer"></div>
 
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
-<script>
-// ===== Constants =====
-const CATEGORIES = {
-  cleaning:{name:'掃除',color:'#5b9bd5',icon:'🧹'},
-  pest:{name:'害虫対策',color:'#e67e22',icon:'🪲'},
-  garden:{name:'庭・植物',color:'#27ae60',icon:'🌿'},
-  maintenance:{name:'メンテナンス',color:'#8e44ad',icon:'🔧'},
-  seasonal:{name:'季節行事',color:'#e74c3c',icon:'🎍'},
-  health:{name:'健康・検診',color:'#1abc9c',icon:'🏥'},
-  event:{name:'イベント',color:'#f39c12',icon:'🎉'},
-  pet:{name:'ペット',color:'#e91e63',icon:'🐾'},
-  other:{name:'その他',color:'#95a5a6',icon:'📌'}
-};
-const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-const MEMBER_COLORS = ['#5b9bd5','#e67e22','#27ae60','#8e44ad','#e74c3c','#1abc9c','#f39c12','#e91e63'];
-
-// ===== State =====
-let currentYear = new Date().getFullYear();
-let tasks = [];
-let members = [];
-let completions = {};
-let activityLog = [];
-let currentSort = 'date';
-let editingId = null;
-let reminderEnabled = false;
-let wizardAnswers = {};
-
-// ===== Firebase State =====
-let db = null;
-let fbMode = false; // true when Firebase is active
-let roomCode = null;
-let currentUserId = null;
-let currentUserName = 'ゲスト';
-let unsubscribers = []; // Firestore listener unsubscribe functions
-
-// ===== Data Layer =====
-const DL = {
-  async saveTask(task, isNew) {
-    if (fbMode && db && roomCode) {
-      const data = { ...task, modifiedAt: firebase.firestore.FieldValue.serverTimestamp(), modifiedBy: currentUserName };
-      if (isNew) data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-      await db.collection('familyRooms').doc(roomCode).collection('tasks').doc(task.id).set(data);
-      await this.log(isNew ? 'task_created' : 'task_updated', `「${task.name}」を${isNew ? '追加' : '更新'}しました`);
-    } else {
-      const idx = tasks.findIndex(t=>t.id===task.id);
-      task.modifiedAt = new Date().toISOString();
-      task.modifiedBy = currentUserName;
-      if (idx >= 0) tasks[idx] = task; else tasks.push(task);
-      this.logLocal(isNew ? 'task_created' : 'task_updated', `「${task.name}」を${isNew ? '追加' : '更新'}しました`);
-      this.saveLocal();
-    }
-  },
-
-  async deleteTask(taskId, taskName) {
-    if (fbMode && db && roomCode) {
-      await db.collection('familyRooms').doc(roomCode).collection('tasks').doc(taskId).delete();
-      // Also delete related completions
-      const snaps = await db.collection('familyRooms').doc(roomCode).collection('completions')
-        .where(firebase.firestore.FieldPath.documentId(), '>=', taskId)
-        .where(firebase.firestore.FieldPath.documentId(), '<=', taskId + '\uf8ff').get();
-      const batch = db.batch();
-      snaps.forEach(d => batch.delete(d.ref));
-      await batch.commit();
-      await this.log('task_deleted', `「${taskName}」を削除しました`);
-    } else {
-      tasks = tasks.filter(t=>t.id!==taskId);
-      Object.keys(completions).forEach(k => { if(k.startsWith(taskId)) delete completions[k]; });
-      this.logLocal('task_deleted', `「${taskName}」を削除しました`);
-      this.saveLocal();
-    }
-  },
-
-  async toggleCompletion(taskId, year, done) {
-    const key = `${taskId}-${year}`;
-    const taskName = (tasks.find(t=>t.id===taskId)||{}).name||'';
-    if (fbMode && db && roomCode) {
-      await db.collection('familyRooms').doc(roomCode).collection('completions').doc(key).set({
-        done, modifiedAt: firebase.firestore.FieldValue.serverTimestamp(), modifiedBy: currentUserName
-      });
-      await this.log(done ? 'task_completed' : 'task_uncompleted',
-        `「${taskName}」(${year}年)を${done ? '完了に' : '未完了に戻'}しました`);
-    } else {
-      completions[key] = done;
-      this.logLocal(done ? 'task_completed' : 'task_uncompleted',
-        `「${taskName}」(${year}年)を${done ? '完了に' : '未完了に戻'}しました`);
-      this.saveLocal();
-    }
-  },
-
-  async addMember(member) {
-    if (fbMode && db && roomCode) {
-      await db.collection('familyRooms').doc(roomCode).collection('members').doc(member.id).set(member);
-      await this.log('member_added', `メンバー「${member.name}」を追加しました`);
-    } else {
-      members.push(member);
-      this.logLocal('member_added', `メンバー「${member.name}」を追加しました`);
-      this.saveLocal();
-    }
-  },
-
-  async removeMember(memberId) {
-    const mem = members.find(m=>m.id===memberId);
-    const name = mem ? mem.name : '';
-    if (fbMode && db && roomCode) {
-      await db.collection('familyRooms').doc(roomCode).collection('members').doc(memberId).delete();
-      // Unassign from tasks
-      const snap = await db.collection('familyRooms').doc(roomCode).collection('tasks')
-        .where('member','==',memberId).get();
-      const batch = db.batch();
-      snap.forEach(d => batch.update(d.ref, {member:''}));
-      await batch.commit();
-      await this.log('member_removed', `メンバー「${name}」を削除しました`);
-    } else {
-      members = members.filter(m=>m.id!==memberId);
-      tasks.forEach(t => { if(t.member===memberId) t.member=''; });
-      this.logLocal('member_removed', `メンバー「${name}」を削除しました`);
-      this.saveLocal();
-    }
-  },
-
-  async log(action, details) {
-    if (!fbMode || !db || !roomCode) return;
-    await db.collection('familyRooms').doc(roomCode).collection('activityLog').add({
-      action, details, performedBy: currentUserName,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-  },
-
-  logLocal(action, details) {
-    activityLog.unshift({
-      action, details, performedBy: currentUserName,
-      timestamp: new Date().toISOString()
-    });
-    if (activityLog.length > 200) activityLog.length = 200;
-    localStorage.setItem('fs-activity', JSON.stringify(activityLog));
-  },
-
-  saveLocal() {
-    localStorage.setItem('fs-tasks', JSON.stringify(tasks));
-    localStorage.setItem('fs-members', JSON.stringify(members));
-    localStorage.setItem('fs-completions', JSON.stringify(completions));
-  }
-};
-
-// ===== Load =====
-function loadLocal() {
-  try {
-    const t = localStorage.getItem('fs-tasks');
-    const m = localStorage.getItem('fs-members');
-    const c = localStorage.getItem('fs-completions');
-    const a = localStorage.getItem('fs-activity');
-    tasks = t ? JSON.parse(t) : [];
-    members = m ? JSON.parse(m) : [];
-    completions = c ? JSON.parse(c) : {};
-    activityLog = a ? JSON.parse(a) : [];
-    reminderEnabled = localStorage.getItem('fs-reminders') === 'true';
-    currentUserId = localStorage.getItem('fs-current-user-id') || null;
-    currentUserName = localStorage.getItem('fs-current-user-name') || 'ゲスト';
-  } catch(e) { tasks=[]; members=[]; completions={}; activityLog=[]; }
-}
-
-function genId() { return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-
-// ===== Firebase Init =====
-async function initFirebase(config) {
-  try {
-    if (firebase.apps.length) await firebase.app().delete();
-    firebase.initializeApp(config);
-    db = firebase.firestore();
-    await db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
-    setSyncStatus('connected');
-    return true;
-  } catch(e) {
-    console.error('Firebase init error:', e);
-    setSyncStatus('error');
-    return false;
-  }
-}
-
-function setSyncStatus(status) {
-  const dot = document.getElementById('syncDot');
-  dot.className = 'sync-dot';
-  if (status==='connected') { dot.classList.add('connected'); dot.title='Firebase接続中'; }
-  else if (status==='error') { dot.classList.add('error'); dot.title='接続エラー'; }
-  else if (status==='syncing') { dot.classList.add('syncing'); dot.title='同期中...'; }
-  else { dot.title='ローカルモード'; }
-}
-
-async function attachListeners() {
-  // Detach existing
-  unsubscribers.forEach(u=>u());
-  unsubscribers = [];
-  if (!db || !roomCode) return;
-
-  const roomRef = db.collection('familyRooms').doc(roomCode);
-  let renderPending = false;
-  function scheduleRender() {
-    if (!renderPending) { renderPending = true; requestAnimationFrame(()=>{ renderPending=false; render(); }); }
-  }
-
-  unsubscribers.push(
-    roomRef.collection('tasks').onSnapshot(snap => {
-      tasks = snap.docs.map(d => ({id:d.id,...d.data()}));
-      // Convert Firestore timestamps
-      tasks.forEach(t => {
-        if (t.modifiedAt && t.modifiedAt.toDate) t.modifiedAt = t.modifiedAt.toDate().toISOString();
-        if (t.createdAt && t.createdAt.toDate) t.createdAt = t.createdAt.toDate().toISOString();
-      });
-      scheduleRender();
-    }, err => { console.error('Tasks listener error:', err); setSyncStatus('error'); })
-  );
-
-  unsubscribers.push(
-    roomRef.collection('members').onSnapshot(snap => {
-      members = snap.docs.map(d => ({id:d.id,...d.data()}));
-      scheduleRender();
-      updateUserBadge();
-    }, err => console.error('Members listener error:', err))
-  );
-
-  unsubscribers.push(
-    roomRef.collection('completions').onSnapshot(snap => {
-      completions = {};
-      snap.docs.forEach(d => { completions[d.id] = d.data().done; });
-      scheduleRender();
-    }, err => console.error('Completions listener error:', err))
-  );
-
-  unsubscribers.push(
-    roomRef.collection('activityLog').orderBy('timestamp','desc').limit(100).onSnapshot(snap => {
-      activityLog = snap.docs.map(d => {
-        const data = d.data();
-        if (data.timestamp && data.timestamp.toDate) data.timestamp = data.timestamp.toDate().toISOString();
-        return data;
-      });
-    }, err => console.error('Activity listener error:', err))
-  );
-}
-
-// ===== Room Management =====
-function generateRoomCode() {
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i=0; i<6; i++) code += chars[Math.floor(Math.random()*chars.length)];
-  return code;
-}
-
-async function createRoom(familyName) {
-  if (!db) return;
-  const code = generateRoomCode();
-  await db.collection('familyRooms').doc(code).set({
-    name: familyName, createdAt: firebase.firestore.FieldValue.serverTimestamp(), createdBy: currentUserName
-  });
-
-  // Upload local data
-  if (tasks.length || members.length) {
-    const batch = db.batch();
-    const roomRef = db.collection('familyRooms').doc(code);
-    tasks.forEach(t => batch.set(roomRef.collection('tasks').doc(t.id), {...t, modifiedAt: firebase.firestore.FieldValue.serverTimestamp(), modifiedBy:currentUserName}));
-    members.forEach(m => batch.set(roomRef.collection('members').doc(m.id), m));
-    Object.entries(completions).forEach(([k,v]) => batch.set(roomRef.collection('completions').doc(k), {done:v, modifiedBy:currentUserName, modifiedAt: firebase.firestore.FieldValue.serverTimestamp()}));
-    await batch.commit();
-  }
-
-  roomCode = code;
-  fbMode = true;
-  localStorage.setItem('fs-room-code', code);
-  await attachListeners();
-  renderRoomInfo();
-}
-
-async function joinRoom(code) {
-  if (!db) return false;
-  code = code.toUpperCase().trim();
-  const doc = await db.collection('familyRooms').doc(code).get();
-  if (!doc.exists) return false;
-
-  roomCode = code;
-  fbMode = true;
-  localStorage.setItem('fs-room-code', code);
-  await attachListeners();
-  renderRoomInfo();
-  return true;
-}
-
-function leaveRoom() {
-  unsubscribers.forEach(u=>u());
-  unsubscribers = [];
-  roomCode = null;
-  fbMode = false;
-  localStorage.removeItem('fs-room-code');
-  loadLocal();
-  render();
-  renderRoomInfo();
-}
-
-function renderRoomInfo() {
-  const section = document.getElementById('roomSection');
-  const userSection = document.getElementById('userSelectSection');
-
-  if (!db) { section.style.display='none'; userSection.style.display='none'; return; }
-  section.style.display = 'block';
-  userSection.style.display = roomCode ? 'block' : 'none';
-
-  if (roomCode) {
-    section.innerHTML = `<h3>家族ルーム</h3>
-      <p>ルームコードを家族と共有してください</p>
-      <div class="room-code-display">${roomCode}</div>
-      <div style="display:flex;gap:6px;justify-content:center">
-        <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('${roomCode}');alert('コピーしました')">コピー</button>
-        <button class="btn btn-danger" onclick="if(confirm('ルームから退出しますか？'))leaveRoom()">退出</button>
-      </div>`;
-    renderUserSelectList();
-  } else {
-    section.innerHTML = `<h3>家族ルーム</h3>
-      <p>ルームを作成するか、既存のルームに参加してください</p>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <div style="flex:1">
-          <input type="text" id="newRoomName" placeholder="家族名（例: 田中家）" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-size:0.8rem;margin-bottom:6px">
-          <button class="btn btn-primary" style="width:100%" onclick="createRoomFromUI()">ルームを作成</button>
-        </div>
-        <div style="flex:1">
-          <input type="text" id="joinRoomCode" placeholder="ルームコード" maxlength="6" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-size:0.8rem;text-transform:uppercase;margin-bottom:6px">
-          <button class="btn btn-primary" style="width:100%" onclick="joinRoomFromUI()">参加する</button>
-        </div>
-      </div>`;
-  }
-}
-
-async function createRoomFromUI() {
-  const name = document.getElementById('newRoomName').value.trim();
-  if (!name) { alert('家族名を入力してください'); return; }
-  await createRoom(name);
-}
-
-async function joinRoomFromUI() {
-  const code = document.getElementById('joinRoomCode').value.trim();
-  if (code.length !== 6) { alert('6桁のルームコードを入力してください'); return; }
-  const ok = await joinRoom(code);
-  if (!ok) alert('このコードのルームは見つかりません');
-}
-
-// ===== User Identity =====
-function setCurrentUser(memberId) {
-  const mem = members.find(m=>m.id===memberId);
-  if (!mem) return;
-  currentUserId = memberId;
-  currentUserName = mem.name;
-  localStorage.setItem('fs-current-user-id', memberId);
-  localStorage.setItem('fs-current-user-name', mem.name);
-  updateUserBadge();
-}
-
-function updateUserBadge() {
-  const badge = document.getElementById('currentUserBadge');
-  const mem = members.find(m=>m.id===currentUserId);
-  if (mem) {
-    badge.classList.add('active');
-    document.getElementById('badgeDot').style.background = mem.color;
-    document.getElementById('badgeName').textContent = mem.name;
-  } else if (members.length) {
-    badge.classList.add('active');
-    document.getElementById('badgeDot').style.background = '#999';
-    document.getElementById('badgeName').textContent = 'ゲスト';
-  } else {
-    badge.classList.remove('active');
-  }
-}
-
-function renderUserSelectList() {
-  const container = document.getElementById('userSelectSection');
-  if (!container) return;
-  container.innerHTML = `<h3>あなたはだれ？</h3>
-    <p style="font-size:0.7rem;color:var(--text-light);margin-bottom:8px">変更履歴に名前が記録されます</p>
-    ${members.map(m => `
-      <div class="member-item" style="cursor:pointer;${m.id===currentUserId?'border:2px solid var(--accent)':''}" onclick="setCurrentUser('${m.id}');renderUserSelectList()">
-        <div class="member-color" style="background:${m.color}"></div>
-        <span class="member-name-display">${escHtml(m.name)}</span>
-        ${m.id===currentUserId?'<span style="color:var(--accent);font-size:0.7rem;font-weight:600">選択中</span>':''}
-      </div>
-    `).join('')}`;
-}
-
-function openUserSelect() {
-  const list = document.getElementById('userSelectQuickList');
-  list.innerHTML = members.map(m => `
-    <div class="member-item" style="cursor:pointer;margin-bottom:4px;${m.id===currentUserId?'border:2px solid var(--accent)':''}" onclick="setCurrentUser('${m.id}');closeUserSelect()">
-      <div class="member-color" style="background:${m.color}"></div>
-      <span class="member-name-display">${escHtml(m.name)}</span>
-      ${m.id===currentUserId?'<span style="color:var(--accent);font-size:0.7rem;font-weight:600">選択中</span>':''}
-    </div>
-  `).join('') || '<p style="font-size:0.8rem;color:var(--text-light)">まずメンバーを登録してください</p>';
-  document.getElementById('userSelectOverlay').classList.add('active');
-}
-function closeUserSelect() { document.getElementById('userSelectOverlay').classList.remove('active'); }
-
-// ===== Settings Modal =====
-function openSettingsModal() {
-  const config = localStorage.getItem('fs-firebase-config');
-  if (config) document.getElementById('fbConfigInput').value = config;
-
-  const st = document.getElementById('fbStatus');
-  if (fbMode) { st.className='settings-status on'; st.textContent='接続中'; }
-  else if (config) { st.className='settings-status off'; st.textContent='未接続'; }
-  else { st.className='settings-status off'; st.textContent='未設定'; }
-
-  renderRoomInfo();
-  document.getElementById('btnReminder').textContent = reminderEnabled ? '通知をオフにする' : '通知をオンにする';
-  document.getElementById('settingsModalOverlay').classList.add('active');
-}
-function closeSettingsModal() { document.getElementById('settingsModalOverlay').classList.remove('active'); }
-
-async function saveFirebaseConfig() {
-  const raw = document.getElementById('fbConfigInput').value.trim();
-  if (!raw) { alert('Firebase Configを入力してください'); return; }
-  try {
-    const config = JSON.parse(raw);
-    if (!config.apiKey || !config.projectId) throw new Error('Invalid config');
-    localStorage.setItem('fs-firebase-config', raw);
-    const ok = await initFirebase(config);
-    if (ok) {
-      // Reconnect to room if we had one
-      const savedRoom = localStorage.getItem('fs-room-code');
-      if (savedRoom) {
-        roomCode = savedRoom;
-        fbMode = true;
-        await attachListeners();
-      }
-      renderRoomInfo();
-      const st = document.getElementById('fbStatus');
-      st.className='settings-status on'; st.textContent='接続中';
-      alert('Firebase接続に成功しました！');
-    } else {
-      alert('Firebase接続に失敗しました。設定を確認してください');
-    }
-  } catch(e) {
-    alert('JSONの形式が正しくありません。Firebase Consoleからコピーした設定を貼り付けてください');
-  }
-}
-
-function clearFirebaseConfig() {
-  if (!confirm('Firebase設定をクリアしてローカルモードに戻りますか？')) return;
-  leaveRoom();
-  localStorage.removeItem('fs-firebase-config');
-  db = null; fbMode = false;
-  setSyncStatus('local');
-  const st = document.getElementById('fbStatus');
-  st.className='settings-status off'; st.textContent='未設定';
-  renderRoomInfo();
-}
-
-// ===== Helpers =====
-function daysInMonth(y,m){return new Date(y,m+1,0).getDate()}
-function daysInYear(y){return((y%4===0&&y%100!==0)||y%400===0)?366:365}
-function dayOfYear(ds){const d=new Date(ds);return Math.floor((d-new Date(d.getFullYear(),0,0))/864e5)}
-function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
-function isTaskDone(taskId){return!!completions[`${taskId}-${currentYear}`]}
-function getMemberById(id){return members.find(m=>m.id===id)}
-
-function relativeTime(ts) {
-  if (!ts) return '';
-  const d = new Date(ts);
-  const now = new Date();
-  const diff = (now - d) / 1000;
-  if (diff < 60) return 'たった今';
-  if (diff < 3600) return `${Math.floor(diff/60)}分前`;
-  if (diff < 86400) return `${Math.floor(diff/3600)}時間前`;
-  if (diff < 604800) return `${Math.floor(diff/86400)}日前`;
-  return `${d.getMonth()+1}/${d.getDate()}`;
-}
-
-// ===== Year Nav =====
-function changeYear(d){currentYear+=d;document.getElementById('currentYear').textContent=currentYear;render()}
-function goToday(){currentYear=new Date().getFullYear();document.getElementById('currentYear').textContent=currentYear;render()}
-function setSort(type){currentSort=type;document.querySelectorAll('.sort-btn').forEach(b=>b.classList.toggle('active',b.dataset.sort===type));render()}
-
-// ===== Toggle Completion =====
-function toggleDone(taskId, e) {
-  e.stopPropagation();
-  const done = !isTaskDone(taskId);
-  completions[`${taskId}-${currentYear}`] = done;
-  render(); // Optimistic update
-  DL.toggleCompletion(taskId, currentYear, done);
-}
-
-// ===== Visible Tasks =====
-function getVisibleTasks() {
-  const fc=document.getElementById('filterCategory').value;
-  const fm=document.getElementById('filterMember').value;
-  const searchEl=document.getElementById('filterSearch');
-  const searchText=(searchEl?searchEl.value:'').trim().toLowerCase();
-  let vis=[];
-  tasks.forEach(t=>{
-    const sy=new Date(t.start).getFullYear(),ey=new Date(t.end).getFullYear();
-    let show=false,ds=t.start,de=t.end;
-    if(sy===currentYear||ey===currentYear){show=true}
-    else if(t.recurring){
-      const s=new Date(t.start),e=new Date(t.end),diff=Math.round((e-s)/864e5);
-      ds=`${currentYear}-${String(s.getMonth()+1).padStart(2,'0')}-${String(s.getDate()).padStart(2,'0')}`;
-      const ne=new Date(currentYear,s.getMonth(),s.getDate()+diff);
-      de=`${ne.getFullYear()}-${String(ne.getMonth()+1).padStart(2,'0')}-${String(ne.getDate()).padStart(2,'0')}`;
-      show=true;
-    }
-    if(searchText&&!t.name.toLowerCase().includes(searchText))show=false;
-    if(show&&(fc==='all'||fc===t.category)&&(fm==='all'||fm===t.member)){
-      vis.push({...t,displayStart:ds,displayEnd:de,done:isTaskDone(t.id)});
-    }
-  });
-  vis.sort((a,b)=>{
-    if(currentSort==='date')return a.displayStart.localeCompare(b.displayStart);
-    if(currentSort==='category')return a.category.localeCompare(b.category)||a.displayStart.localeCompare(b.displayStart);
-    if(currentSort==='member')return(a.member||'').localeCompare(b.member||'')||a.displayStart.localeCompare(b.displayStart);
-    return 0;
-  });
-  return vis;
-}
-
-// ===== Render =====
-function render(){renderMonthsHeader();renderBody();renderLegend();renderFilters();renderMascot();updateUserBadge();renderUpcoming();renderMobileCards()}
-
-function renderMonthsHeader(){
-  document.getElementById('monthsHeader').innerHTML=MONTHS.map((m,i)=>
-    `<div class="month-col" onclick="openMonthZoom(${i})"><span class="month-name">${m}</span><span class="month-days">${daysInMonth(currentYear,i)}日</span></div>`
-  ).join('');
-}
-
-function renderBody(){
-  const body=document.getElementById('ganttBody');
-  const vis=getVisibleTasks();
-  document.getElementById('taskCount').textContent=`${vis.length} 件`;
-  if(!vis.length){
-    body.innerHTML=`<div style="text-align:center;padding:50px 20px;color:var(--text-light)"><div style="font-size:2rem;margin-bottom:10px;opacity:0.4">📋</div><p style="font-size:0.85rem">スケジュールがまだありません</p><p style="font-size:0.7rem;color:#aaa">「+ 追加」または「テンプレ」から登録</p></div>`;
-    updateTodayLine(null);return;
-  }
-  const total=daysInYear(currentYear);
-  body.innerHTML=vis.map(t=>{
-    const cat=CATEGORIES[t.category]||CATEGORIES.other;
-    const sd=dayOfYear(t.displayStart),ed=dayOfYear(t.displayEnd);
-    const lp=((sd-1)/total)*100,wp=Math.max(((ed-sd+1)/total)*100,0.5);
-    const sD=new Date(t.displayStart),eD=new Date(t.displayEnd);
-    const dt=t.displayStart===t.displayEnd?`${sD.getMonth()+1}/${sD.getDate()}`:`${sD.getMonth()+1}/${sD.getDate()} 〜 ${eD.getMonth()+1}/${eD.getDate()}`;
-    const mem=t.member?getMemberById(t.member):null;
-    const rc=t.done?'is-done':t.paused?'is-paused':'';
-    const bc=t.done?'is-done':t.paused?'is-paused':'';
-    const nc=t.done?'done-text':'';
-    const bl=wp>5?escHtml(t.name):'';
-    const modInfo=t.modifiedBy?`<span class="task-modified">${escHtml(t.modifiedBy)} ${relativeTime(t.modifiedAt)}</span>`:'';
-
-    return `<div class="gantt-row ${rc}" onclick="openTaskModal('${t.id}')">
-      <div class="task-label">
-        <div class="task-check ${t.done?'checked':''}" onclick="toggleDone('${t.id}',event)">${t.done?'✓':''}</div>
-        <div class="task-cat-dot" style="background:${cat.color}"></div>
-        <div class="task-info">
-          <div class="task-name ${nc}">${escHtml(t.name)}</div>
-          <div class="task-meta">
-            <span>${dt}</span>
-            ${t.recurring?'<span>🔄</span>':''}
-            ${t.paused?'<span style="color:#e67e22">⏸</span>':''}
-            ${mem?`<span class="task-member-badge" style="background:${mem.color}">${escHtml(mem.name)}</span>`:''}
-            ${modInfo}
-          </div>
-        </div>
-      </div>
-      <div class="task-timeline">
-        ${Array.from({length:12},()=>'<div class="month-cell"></div>').join('')}
-        <div class="task-bar ${bc}" style="left:${lp}%;width:${wp}%;background:${cat.color}">${bl}</div>
-      </div>
-    </div>`;
-  }).join('');
-  updateTodayLine(total);
-}
-
-function updateTodayLine(total){
-  const w=document.getElementById('ganttBodyWrapper');
-  let l=w.querySelector('.today-line-global');if(l)l.remove();
-  if(!total)return;
-  const today=new Date();if(today.getFullYear()!==currentYear)return;
-  const doy=dayOfYear(today.toISOString().split('T')[0]);
-  const pct=((doy-0.5)/total)*100;
-  l=document.createElement('div');l.className='today-line-global';
-  l.style.left=`calc(300px + (100% - 300px) * ${pct/100})`;
-  w.appendChild(l);
-}
-
-function renderLegend(){
-  document.getElementById('legend').innerHTML=Object.entries(CATEGORIES).map(([k,c])=>
-    `<div class="legend-item" onclick="toggleFilter('${k}')"><div class="legend-dot" style="background:${c.color}"></div>${c.name}</div>`
-  ).join('');
-}
-
-function renderFilters(){
-  const cs=document.getElementById('filterCategory'),cv=cs.value;
-  cs.innerHTML='<option value="all">すべて</option>'+Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}">${c.name}</option>`).join('');cs.value=cv;
-  const ms=document.getElementById('filterMember'),mv=ms.value;
-  ms.innerHTML='<option value="all">全員</option>'+members.map(m=>`<option value="${m.id}">${escHtml(m.name)}</option>`).join('');ms.value=mv;
-}
-
-function toggleFilter(cat){const s=document.getElementById('filterCategory');s.value=s.value===cat?'all':cat;render()}
-
-// ===== Mascot =====
-function renderMascot(){
-  const todayStr=new Date().toISOString().split('T')[0];
-  const vis=getVisibleTasks();
-  let done=0,remain=0,overdue=0;
-  vis.forEach(t=>{if(t.paused)return;if(t.done){done++;return}if(t.displayEnd<todayStr)overdue++;else remain++});
-  const total=done+remain+overdue,rate=total>0?done/total:1,overdueRate=total>0?overdue/total:0;
-  document.getElementById('statDone').textContent=done;
-  document.getElementById('statRemain').textContent=remain;
-  document.getElementById('statOverdue').textContent=overdue;
-  const hearts=5;let filled=Math.round((1-overdueRate)*hearts);
-  if(overdue>0&&filled===hearts)filled=hearts-1;filled=Math.max(0,Math.min(hearts,filled));
-  document.getElementById('heartsRow').innerHTML=Array.from({length:hearts},(_,i)=>`<span class="heart ${i<filled?'':'empty'}">❤️</span>`).join('');
-  document.getElementById('deco1').classList.toggle('visible',rate>0.3);
-  document.getElementById('deco2').classList.toggle('visible',rate>0.6);
-  document.getElementById('deco3').classList.toggle('visible',rate>0.85);
-  const scene=document.getElementById('mascotArea');scene.className='mascot-area';
-  let state,msg,sub;
-  if(!total){state='good';msg='スケちゃんが待ってるよ！';sub='タスクを追加してみよう'}
-  else if(overdueRate===0&&rate>=0.8){state='great';msg='すごい！みんな最高だよ！';sub='スケちゃんがとっても嬉しそう'}
-  else if(overdueRate===0){state='good';msg='いい調子だね！';sub='この調子でがんばろう'}
-  else if(overdueRate<0.2){state='ok';msg='ちょっと忘れてることがあるかも？';sub=`期限切れが${overdue}件あるよ`}
-  else if(overdueRate<0.5){state='sad';msg='スケちゃんが心配してるよ...';sub=`期限切れが${overdue}件...確認してね`}
-  else{state='bad';msg='スケちゃんが元気ないよ...';sub='タスクを片付けて元気にしてあげよう！'}
-  scene.classList.add(`mascot-state-${state}`);
-  document.getElementById('mascotMessage').textContent=msg;
-  document.getElementById('mascotSub').textContent=sub;
-}
-
-// ===== Task Modal =====
-function openTaskModal(id){
-  editingId=id||null;
-  document.getElementById('taskCategory').innerHTML=Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}">${c.icon} ${c.name}</option>`).join('');
-  document.getElementById('taskMember').innerHTML='<option value="">未定</option>'+members.map(m=>`<option value="${m.id}">${escHtml(m.name)}</option>`).join('');
-  document.getElementById('taskForm').reset();
-  document.getElementById('taskPaused').checked=false;
-  const modInfo=document.getElementById('taskModifiedInfo');
-  modInfo.style.display='none';
-  if(editingId){
-    const t=tasks.find(x=>x.id===editingId);if(!t)return;
-    document.getElementById('taskModalTitle').textContent='スケジュール編集';
-    document.getElementById('taskName').value=t.name;
-    document.getElementById('taskCategory').value=t.category;
-    document.getElementById('taskMember').value=t.member||'';
-    document.getElementById('taskStart').value=t.start;
-    document.getElementById('taskEnd').value=t.end;
-    document.getElementById('taskRecurring').checked=t.recurring;
-    document.getElementById('taskPaused').checked=!!t.paused;
-    document.getElementById('taskMemo').value=t.memo||'';
-    document.getElementById('btnDelete').style.display='inline-block';
-    document.getElementById('btnDuplicate').style.display='inline-block';
-    if(t.modifiedBy){
-      modInfo.style.display='block';
-      modInfo.textContent=`最終更新: ${t.modifiedBy}${t.modifiedAt?' ('+relativeTime(t.modifiedAt)+')':''}`;
-    }
-  } else {
-    document.getElementById('taskModalTitle').textContent='スケジュール追加';
-    const td=new Date().toISOString().split('T')[0];
-    document.getElementById('taskStart').value=td;document.getElementById('taskEnd').value=td;
-    document.getElementById('btnDelete').style.display='none';
-    document.getElementById('btnDuplicate').style.display='none';
-  }
-  document.getElementById('taskModalOverlay').classList.add('active');
-  setTimeout(()=>document.getElementById('taskName').focus(),100);
-}
-function closeTaskModal(){document.getElementById('taskModalOverlay').classList.remove('active');editingId=null}
-
-function saveTask(e){
-  e.preventDefault();
-  const name=document.getElementById('taskName').value.trim();
-  const category=document.getElementById('taskCategory').value;
-  const member=document.getElementById('taskMember').value;
-  const start=document.getElementById('taskStart').value;
-  const end=document.getElementById('taskEnd').value;
-  const recurring=document.getElementById('taskRecurring').checked;
-  const paused=document.getElementById('taskPaused').checked;
-  const memo=document.getElementById('taskMemo').value.trim();
-  if(!name||!start||!end)return;
-  if(new Date(end)<new Date(start)){alert('終了日は開始日以降にしてください');return}
-
-  const isNew=!editingId;
-  const task = editingId
-    ? {...tasks.find(t=>t.id===editingId),name,category,member,start,end,recurring,paused,memo}
-    : {id:genId(),name,category,member,start,end,recurring,paused,memo};
-
-  // Optimistic update for local
-  if (!fbMode) {
-    const idx=tasks.findIndex(t=>t.id===task.id);
-    if(idx>=0)tasks[idx]=task;else tasks.push(task);
-  }
-  DL.saveTask(task, isNew);
-  closeTaskModal();
-  if(!fbMode)render();
-}
-
-let deletedTaskBackup=null;
-let deleteUndoTimer=null;
-
-function deleteTask(){
-  if(!editingId)return;
-  const t=tasks.find(x=>x.id===editingId);
-  if(!t)return;
-  const taskCopy={...t};
-  const taskId=editingId;
-  const compBackup={};
-  Object.keys(completions).forEach(k=>{if(k.startsWith(taskId))compBackup[k]=completions[k]});
-
-  // Remove immediately
-  if(!fbMode){tasks=tasks.filter(x=>x.id!==taskId);Object.keys(compBackup).forEach(k=>delete completions[k])}
-  DL.deleteTask(taskId,taskCopy.name);
-  closeTaskModal();
-  if(!fbMode)render();
-
-  // Store backup and show toast
-  deletedTaskBackup={task:taskCopy,completions:compBackup};
-  showUndoToast(taskCopy.name);
-}
-
-function showUndoToast(name){
-  if(deleteUndoTimer)clearTimeout(deleteUndoTimer);
-  const container=document.getElementById('toastContainer');
-  container.innerHTML=`<div class="toast"><span>「${escHtml(name)}」を削除しました</span><button class="toast-undo" onclick="undoDelete()">元に戻す</button></div>`;
-  deleteUndoTimer=setTimeout(()=>{container.innerHTML='';deletedTaskBackup=null;deleteUndoTimer=null},5000);
-}
-
-function undoDelete(){
-  if(!deletedTaskBackup)return;
-  if(deleteUndoTimer){clearTimeout(deleteUndoTimer);deleteUndoTimer=null}
-  const {task,completions:comp}=deletedTaskBackup;
-  if(!fbMode){tasks.push(task);Object.assign(completions,comp)}
-  DL.saveTask(task,true);
-  // Restore completions
-  Object.entries(comp).forEach(([k,v])=>{
-    completions[k]=v;
-    const parts=k.split('-');
-    if(parts.length>=2){
-      const yr=parseInt(parts[parts.length-1]);
-      if(!isNaN(yr))DL.toggleCompletion(task.id,yr,v);
-    }
-  });
-  deletedTaskBackup=null;
-  document.getElementById('toastContainer').innerHTML='';
-  if(!fbMode)render();
-}
-
-function duplicateTask(){
-  if(!editingId)return;
-  const t=tasks.find(x=>x.id===editingId);
-  if(!t)return;
-  const newTask={...t,id:genId(),name:t.name+' (コピー)'};
-  if(!fbMode)tasks.push(newTask);
-  DL.saveTask(newTask,true);
-  closeTaskModal();
-  if(!fbMode)render();
-}
-
-// ===== Member Modal =====
-function openMemberModal(){renderMemberList();document.getElementById('memberModalOverlay').classList.add('active')}
-function closeMemberModal(){document.getElementById('memberModalOverlay').classList.remove('active');render()}
-
-function renderMemberList(){
-  document.getElementById('memberList').innerHTML=members.length===0
-    ?'<p style="font-size:0.75rem;color:var(--text-light);padding:6px 0">まだメンバーがいません</p>'
-    :members.map(m=>`<div class="member-item"><div class="member-color" style="background:${m.color}"></div><span class="member-name-display">${escHtml(m.name)}</span><button class="member-remove" onclick="removeMember('${m.id}')">✕</button></div>`).join('');
-}
-
-function addMember(){
-  const name=document.getElementById('newMemberName').value.trim();
-  const color=document.getElementById('newMemberColor').value;
-  if(!name)return;
-  const member={id:genId(),name,color};
-  if(!fbMode)members.push(member);
-  DL.addMember(member);
-  document.getElementById('newMemberName').value='';
-  document.getElementById('newMemberColor').value=MEMBER_COLORS[members.length%MEMBER_COLORS.length];
-  if(!fbMode)renderMemberList();
-  else setTimeout(renderMemberList,500);
-}
-
-function removeMember(id){
-  if(!confirm('このメンバーを削除しますか？'))return;
-  if(!fbMode){members=members.filter(m=>m.id!==id);tasks.forEach(t=>{if(t.member===id)t.member=''})}
-  DL.removeMember(id);
-  if(!fbMode)renderMemberList();
-  else setTimeout(renderMemberList,500);
-}
-
-// ===== Template Modal =====
-const TEMPLATES={
-  '掃除':[{name:'大掃除',cat:'cleaning',s:'12-27',e:'12-30',memo:'年末の大掃除'},{name:'換気扇掃除',cat:'cleaning',s:'06-01',e:'06-01',memo:''},{name:'窓拭き',cat:'cleaning',s:'03-15',e:'03-15',memo:''},{name:'排水口掃除',cat:'cleaning',s:'03-01',e:'03-01',memo:''},{name:'カーテン洗濯',cat:'cleaning',s:'10-01',e:'10-01',memo:''}],
-  '害虫対策':[{name:'ゴキブリ駆除剤セット',cat:'pest',s:'02-02',e:'02-02',memo:'各部屋にブラックキャップ設置'},{name:'ダニ対策（布団乾燥）',cat:'pest',s:'06-01',e:'06-01',memo:''},{name:'蚊取り対策スタート',cat:'pest',s:'05-15',e:'05-15',memo:''},{name:'防虫剤交換（衣類）',cat:'pest',s:'04-01',e:'04-01',memo:''}],
-  'メンテナンス':[{name:'エアコンフィルター掃除（春）',cat:'maintenance',s:'05-15',e:'05-15',memo:''},{name:'エアコンフィルター掃除（秋）',cat:'maintenance',s:'10-01',e:'10-01',memo:''},{name:'防災用品チェック',cat:'maintenance',s:'09-01',e:'09-01',memo:'防災の日'},{name:'火災報知器点検',cat:'maintenance',s:'11-01',e:'11-01',memo:''},{name:'浄水器カートリッジ交換',cat:'maintenance',s:'06-01',e:'06-01',memo:''}],
-  '季節行事':[{name:'お正月準備',cat:'seasonal',s:'12-25',e:'12-31',memo:'おせち注文・飾り付け'},{name:'衣替え（春）',cat:'seasonal',s:'04-01',e:'04-07',memo:''},{name:'衣替え（秋）',cat:'seasonal',s:'10-01',e:'10-07',memo:''},{name:'年賀状準備',cat:'seasonal',s:'12-01',e:'12-20',memo:''}],
-  '庭・植物':[{name:'庭の草むしり期間',cat:'garden',s:'04-01',e:'09-30',memo:'月1回程度'},{name:'庭木の剪定',cat:'garden',s:'02-01',e:'02-28',memo:''},{name:'肥料やり',cat:'garden',s:'03-15',e:'03-15',memo:''}],
-  '健康':[{name:'健康診断',cat:'health',s:'06-10',e:'06-10',memo:''},{name:'歯科検診',cat:'health',s:'04-01',e:'04-01',memo:''},{name:'インフルエンザ予防接種',cat:'health',s:'10-15',e:'10-15',memo:''}],
-  'ペット':[{name:'予防接種',cat:'pet',s:'04-01',e:'04-01',memo:''},{name:'フィラリア予防開始',cat:'pet',s:'05-01',e:'05-01',memo:''},{name:'ノミ・ダニ対策',cat:'pet',s:'04-01',e:'10-31',memo:''}]
-};
-
-function openTemplateModal(){
-  const existNames=new Set(tasks.map(t=>t.name));
-  document.getElementById('templateList').innerHTML=Object.entries(TEMPLATES).map(([g,items])=>
-    `<div class="template-group"><h4>${g}</h4>${items.map(item=>{
-      const added=existNames.has(item.name);
-      return`<div class="template-item"><div class="template-item-info"><div class="legend-dot" style="background:${(CATEGORIES[item.cat]||CATEGORIES.other).color}"></div><span>${escHtml(item.name)}</span><span style="font-size:0.6rem;color:#aaa">${item.s} 〜 ${item.e}</span></div><button class="template-item-add ${added?'added':''}" ${added?'disabled':''} onclick="addFromTemplate(this,'${escHtml(item.name)}','${item.cat}','${item.s}','${item.e}','${escHtml(item.memo||'')}')">${added?'追加済':'+ 追加'}</button></div>`;
-    }).join('')}</div>`
-  ).join('');
-  document.getElementById('templateModalOverlay').classList.add('active');
-}
-function closeTemplateModal(){document.getElementById('templateModalOverlay').classList.remove('active');render()}
-
-function addFromTemplate(btn,name,cat,s,e,memo){
-  const y=currentYear;
-  const task={id:genId(),name,category:cat,start:`${y}-${s}`,end:`${y}-${e}`,recurring:true,paused:false,member:'',memo};
-  if(!fbMode)tasks.push(task);
-  DL.saveTask(task,true);
-  btn.textContent='追加済';btn.classList.add('added');btn.disabled=true;
-}
-
-// ===== Activity Modal =====
-function openActivityModal(){
-  renderActivityList();
-  document.getElementById('activityModalOverlay').classList.add('active');
-}
-function closeActivityModal(){document.getElementById('activityModalOverlay').classList.remove('active')}
-
-function renderActivityList(){
-  const list=document.getElementById('activityList');
-  if(!activityLog.length){list.innerHTML='<p style="font-size:0.8rem;color:var(--text-light);text-align:center;padding:20px">履歴はまだありません</p>';return}
-  const icons={task_created:'📝',task_updated:'✏️',task_deleted:'🗑️',task_completed:'✅',task_uncompleted:'↩️',member_added:'👤',member_removed:'👤'};
-  list.innerHTML=activityLog.slice(0,100).map(a=>
-    `<div class="activity-item">
-      <div class="activity-icon">${icons[a.action]||'📋'}</div>
-      <div class="activity-content">
-        <div class="activity-desc"><span class="activity-who">${escHtml(a.performedBy||'')}</span> ${escHtml(a.details||'')}</div>
-        <div class="activity-time">${relativeTime(a.timestamp)}</div>
-      </div>
-    </div>`
-  ).join('');
-}
-
-// ===== Data Modal =====
-function openDataModal(){document.getElementById('dataModalOverlay').classList.add('active')}
-function closeDataModal(){document.getElementById('dataModalOverlay').classList.remove('active')}
-
-function exportData(){
-  const data={tasks,members,completions,activityLog,exportDate:new Date().toISOString()};
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download=`family-schedule-${new Date().toISOString().split('T')[0]}.json`;
-  a.click();URL.revokeObjectURL(a.href);
-}
-
-function importData(e){
-  const file=e.target.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=function(ev){
-    try{
-      const data=JSON.parse(ev.target.result);
-      if(!data.tasks||!Array.isArray(data.tasks))throw new Error('Invalid');
-      if(!confirm(`${data.tasks.length}件のタスクをインポートします。よろしいですか？`))return;
-      tasks=data.tasks;members=data.members||[];completions=data.completions||{};
-      activityLog=data.activityLog||[];
-      if(fbMode&&db&&roomCode){
-        // Upload to Firestore
-        const roomRef=db.collection('familyRooms').doc(roomCode);
-        const batch=db.batch();
-        tasks.forEach(t=>batch.set(roomRef.collection('tasks').doc(t.id),{...t,modifiedAt:firebase.firestore.FieldValue.serverTimestamp(),modifiedBy:currentUserName}));
-        members.forEach(m=>batch.set(roomRef.collection('members').doc(m.id),m));
-        Object.entries(completions).forEach(([k,v])=>batch.set(roomRef.collection('completions').doc(k),{done:v,modifiedBy:currentUserName,modifiedAt:firebase.firestore.FieldValue.serverTimestamp()}));
-        batch.commit().then(()=>alert('インポート完了！'));
-      } else {
-        DL.saveLocal();render();closeDataModal();alert('インポート完了！');
-      }
-    }catch(err){alert('ファイルの読み込みに失敗しました')}
-  };
-  reader.readAsText(file);e.target.value='';
-}
-
-// Drop zone
-const dz=document.getElementById('dropZone');
-if(dz){
-  dz.addEventListener('dragover',e=>{e.preventDefault();dz.style.borderColor='var(--accent)'});
-  dz.addEventListener('dragleave',()=>{dz.style.borderColor=''});
-  dz.addEventListener('drop',e=>{e.preventDefault();dz.style.borderColor='';if(e.dataTransfer.files[0]){document.getElementById('fileInput').files=e.dataTransfer.files;importData({target:document.getElementById('fileInput')})}});
-}
-
-// ===== Reminders =====
-function toggleReminders(){
-  if(!reminderEnabled){
-    if('Notification'in window){
-      Notification.requestPermission().then(p=>{
-        if(p==='granted'){reminderEnabled=true;localStorage.setItem('fs-reminders','true');checkReminders();document.getElementById('btnReminder').textContent='通知をオフにする';alert('通知をオンにしました')}
-        else alert('通知の許可が必要です');
-      });
-    }else alert('このブラウザは通知に対応していません');
-  }else{reminderEnabled=false;localStorage.setItem('fs-reminders','false');document.getElementById('btnReminder').textContent='通知をオンにする';alert('通知をオフにしました')}
-}
-
-function checkReminders(){
-  if(!reminderEnabled||!('Notification'in window)||Notification.permission!=='granted')return;
-  const today=new Date().toISOString().split('T')[0];
-  const tmrw=new Date(new Date().getTime()+864e5).toISOString().split('T')[0];
-  getVisibleTasks().filter(t=>!t.done&&!t.paused&&(t.displayStart===today||t.displayStart===tmrw)).forEach(t=>{
-    new Notification(`📋 ${t.displayStart===today?'今日':'明日'}のタスク`,{body:t.name,tag:t.id});
-  });
-}
-setTimeout(checkReminders,2000);setInterval(checkReminders,3600000);
-
-// ===== Month Zoom =====
-function openMonthZoom(mi){
-  const zoom=document.getElementById('monthZoom');
-  const days=daysInMonth(currentYear,mi);
-  const vis=getVisibleTasks().filter(t=>{
-    const s=new Date(t.displayStart),e=new Date(t.displayEnd);
-    return s<=new Date(currentYear,mi,days)&&e>=new Date(currentYear,mi,1);
-  });
-  const todayStr=new Date().toISOString().split('T')[0];
-  const dayNames=['日','月','火','水','木','金','土'];
-  const dh=Array.from({length:days},(_,i)=>{
-    const d=new Date(currentYear,mi,i+1);const dow=d.getDay();
-    return`<div class="zoom-day-col ${dow===0||dow===6?'weekend':''} ${d.toISOString().split('T')[0]===todayStr?'today':''}">${i+1}<br><span style="font-size:0.45rem">${dayNames[dow]}</span></div>`;
-  }).join('');
-  const tr=vis.map(t=>{
-    const cat=CATEGORIES[t.category]||CATEGORIES.other;
-    const s=new Date(t.displayStart),e=new Date(t.displayEnd);
-    const sd=Math.max(1,s.getMonth()===mi?s.getDate():1);
-    const ed=Math.min(days,e.getMonth()===mi?e.getDate():days);
-    const lp=((sd-1)/days)*100,wp=((ed-sd+1)/days)*100;
-    const dc=Array.from({length:days},(_,i)=>{const d=new Date(currentYear,mi,i+1);return`<div class="zoom-day-cell ${d.getDay()===0||d.getDay()===6?'weekend':''}"></div>`}).join('');
-    return`<div class="zoom-task-row"><div class="zoom-task-label"><div class="legend-dot" style="background:${cat.color}"></div><span>${escHtml(t.name)}</span></div><div class="zoom-task-timeline" style="grid-template-columns:repeat(${days},1fr)">${dc}<div class="zoom-bar" style="left:${lp}%;width:${wp}%;background:${cat.color}"></div></div></div>`;
-  }).join('');
-  zoom.innerHTML=`<div class="month-zoom-header"><h3>${currentYear}年 ${MONTHS[mi]}</h3><button class="month-zoom-close" onclick="closeMonthZoom()">✕</button></div>
-    <div class="zoom-task-row" style="border-bottom:2px solid var(--border)"><div class="zoom-task-label" style="font-weight:600;font-size:0.65rem;color:var(--text-light)">タスク</div><div style="display:grid;grid-template-columns:repeat(${days},1fr)">${dh}</div></div>
-    ${tr||'<div style="padding:20px;text-align:center;color:var(--text-light);font-size:0.8rem">この月にタスクはありません</div>'}`;
-  zoom.classList.add('active');zoom.scrollIntoView({behavior:'smooth',block:'start'});
-}
-function closeMonthZoom(){document.getElementById('monthZoom').classList.remove('active')}
-
-// ===== Wizard =====
-let wizardStep=0;const WIZARD_STEPS=5;
-function openWizard(){wizardStep=0;wizardAnswers={};updateWizardUI();document.getElementById('wizardOverlay').classList.add('active')}
-function updateWizardUI(){
-  document.querySelectorAll('.wizard-step').forEach(s=>s.classList.remove('active'));
-  const step=document.querySelector(`.wizard-step[data-step="${wizardStep}"]`);if(step)step.classList.add('active');
-  document.getElementById('wizardProgress').innerHTML=Array.from({length:WIZARD_STEPS},(_,i)=>`<div class="wizard-dot ${i<=wizardStep?'active':''}"></div>`).join('');
-  document.getElementById('wizBtnBack').style.display=wizardStep>0?'inline-block':'none';
-  document.getElementById('wizBtnNext').textContent=wizardStep===WIZARD_STEPS-1?'完了！':'次へ';
-  if(wizardStep===4)buildWizardSuggestions();
-}
-function wizardSelect(el){wizardAnswers[el.dataset.key]=el.dataset.val;el.parentElement.querySelectorAll('.wizard-opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected')}
-function wizardNext(){
-  if(wizardStep<WIZARD_STEPS-1){
-    if(wizardStep===3){
-      document.querySelectorAll('.wiz-member-input').forEach((n,i)=>{
-        const name=n.value.trim();
-        if(name){const color=document.querySelectorAll('.wiz-member-color')[i].value;const member={id:genId(),name,color};members.push(member);DL.addMember(member)}
-      });
-    }
-    wizardStep++;updateWizardUI();
-  }else{
-    document.querySelectorAll('#wizardSuggestions input[type="checkbox"]:checked').forEach(cb=>{
-      const d=JSON.parse(cb.dataset.task);const y=currentYear;
-      const task={id:genId(),name:d.name,category:d.cat,start:`${y}-${d.s}`,end:`${y}-${d.e}`,recurring:true,paused:false,member:'',memo:d.memo||''};
-      tasks.push(task);DL.saveTask(task,true);
-    });
-    localStorage.setItem('fs-wizard-done','true');DL.saveLocal();
-    document.getElementById('wizardOverlay').classList.remove('active');render();
-  }
-}
-function wizardBack(){if(wizardStep>0){wizardStep--;updateWizardUI()}}
-function buildWizardSuggestions(){
-  let suggested=[...TEMPLATES['掃除'],...TEMPLATES['メンテナンス'],...TEMPLATES['季節行事'],...TEMPLATES['健康'],...TEMPLATES['害虫対策']];
-  if(wizardAnswers.garden==='yes')suggested.push(...TEMPLATES['庭・植物']);
-  if(wizardAnswers.pet==='yes')suggested.push(...TEMPLATES['ペット']);
-  document.getElementById('wizardSuggestions').innerHTML=suggested.map(item=>
-    `<label style="display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:6px;margin-bottom:2px;cursor:pointer;font-size:0.75rem"><input type="checkbox" checked data-task='${JSON.stringify(item).replace(/'/g,"\\'")}'>
-    <div class="legend-dot" style="background:${(CATEGORIES[item.cat]||CATEGORIES.other).color};flex-shrink:0"></div><span>${escHtml(item.name)}</span><span style="font-size:0.55rem;color:#aaa;margin-left:auto">${item.s}</span></label>`
-  ).join('');
-}
-
-// ===== Menu Dropdown =====
-function toggleMenuDropdown(e){
-  e.stopPropagation();
-  document.getElementById('menuDropdown').classList.toggle('open');
-}
-function closeMenuDropdown(){document.getElementById('menuDropdown').classList.remove('open')}
-document.addEventListener('click',function(e){
-  const dd=document.getElementById('menuDropdown');
-  if(dd&&!dd.contains(e.target)&&e.target.id!=='menuBtn')dd.classList.remove('open');
-});
-
-// ===== Mascot Collapse =====
-function toggleMascotCollapse(){
-  const area=document.getElementById('mascotArea');
-  const btn=document.getElementById('mascotToggle');
-  const collapsed=!area.classList.contains('collapsed');
-  area.classList.toggle('collapsed',collapsed);
-  btn.innerHTML=collapsed?'&#9650;':'&#9660;';
-  localStorage.setItem('fs-mascot-collapsed',collapsed?'true':'false');
-}
-function initMascotCollapse(){
-  if(localStorage.getItem('fs-mascot-collapsed')==='true'){
-    document.getElementById('mascotArea').classList.add('collapsed');
-    document.getElementById('mascotToggle').innerHTML='&#9650;';
-  }
-}
-
-// ===== Dark Mode =====
-function toggleDarkMode(){
-  const isDark=document.body.classList.toggle('dark');
-  localStorage.setItem('fs-dark-mode',isDark?'true':'false');
-  updateDarkModeLabel();
-}
-function updateDarkModeLabel(){
-  const el=document.getElementById('darkModeMenuItem');
-  if(!el)return;
-  const isDark=document.body.classList.contains('dark');
-  el.innerHTML=isDark?'&#9728;&#65039; ライトモード':'&#127769; ダークモード';
-}
-function initDarkMode(){
-  if(localStorage.getItem('fs-dark-mode')==='true'){
-    document.body.classList.add('dark');
-  }
-  updateDarkModeLabel();
-}
-
-// ===== Upcoming Tasks =====
-let upcomingDays=7;
-function renderUpcoming(){
-  const container=document.getElementById('upcomingContainer');
-  if(!container)return;
-  const today=new Date();
-  const todayStr=today.toISOString().split('T')[0];
-  const limit=new Date(today);limit.setDate(limit.getDate()+upcomingDays);
-  const limitStr=limit.toISOString().split('T')[0];
-
-  // Get tasks due in upcoming range
-  const upcoming=[];
-  tasks.forEach(t=>{
-    const done=isTaskDone(t.id);
-    if(done||t.paused)return;
-    let ds=t.start,de=t.end;
-    const sy=new Date(t.start).getFullYear(),ey=new Date(t.end).getFullYear();
-    if(t.recurring&&sy!==currentYear&&ey!==currentYear){
-      const s=new Date(t.start),e=new Date(t.end),diff=Math.round((e-s)/864e5);
-      ds=`${currentYear}-${String(s.getMonth()+1).padStart(2,'0')}-${String(s.getDate()).padStart(2,'0')}`;
-      const ne=new Date(currentYear,s.getMonth(),s.getDate()+diff);
-      de=`${ne.getFullYear()}-${String(ne.getMonth()+1).padStart(2,'0')}-${String(ne.getDate()).padStart(2,'0')}`;
-    }
-    // Include if end date >= today and start date <= limit
-    if(de>=todayStr&&ds<=limitStr){
-      upcoming.push({...t,displayStart:ds,displayEnd:de,done:false});
-    }
-  });
-  upcoming.sort((a,b)=>a.displayStart.localeCompare(b.displayStart));
-
-  if(!upcoming.length){container.innerHTML='';return}
-
-  const items=upcoming.slice(0,10).map(t=>{
-    const cat=CATEGORIES[t.category]||CATEGORIES.other;
-    const mem=t.member?getMemberById(t.member):null;
-    const sD=new Date(t.displayStart);
-    const dateLabel=`${sD.getMonth()+1}/${sD.getDate()}`;
-    return`<div class="upcoming-item" onclick="openTaskModal('${t.id}')">
-      <div class="upcoming-check" onclick="event.stopPropagation();toggleDone('${t.id}',event)"></div>
-      <div class="task-cat-dot" style="background:${cat.color}"></div>
-      <span class="upcoming-date">${dateLabel}</span>
-      <span class="upcoming-name">${escHtml(t.name)}</span>
-      ${mem?`<span class="task-member-badge" style="background:${mem.color}">${escHtml(mem.name)}</span>`:''}
-    </div>`;
-  }).join('');
-
-  container.innerHTML=`<div class="upcoming-section" style="margin:0 14px;margin-top:14px">
-    <div class="upcoming-header">
-      <h3>&#128197; 次にやること（${upcomingDays}日以内 ${upcoming.length}件）</h3>
-      <button class="upcoming-toggle" onclick="toggleUpcomingRange()">${upcomingDays===7?'30日表示':'7日表示'}</button>
-    </div>
-    <div class="upcoming-list">${items}</div>
-    ${upcoming.length>10?`<div style="text-align:center;font-size:0.65rem;color:var(--text-light);margin-top:4px">他 ${upcoming.length-10}件</div>`:''}
-  </div>`;
-}
-function toggleUpcomingRange(){upcomingDays=upcomingDays===7?30:7;renderUpcoming()}
-
-// ===== Mobile Card View =====
-function renderMobileCards(){
-  const container=document.getElementById('mobileCardView');
-  if(!container)return;
-  const vis=getVisibleTasks();
-  if(!vis.length){
-    container.innerHTML=`<div style="text-align:center;padding:30px 20px;color:var(--text-light)"><p style="font-size:0.85rem">スケジュールがまだありません</p></div>`;
-    return;
-  }
-  container.innerHTML=`<div class="mobile-filter-bar">
-    <select onchange="document.getElementById('filterCategory').value=this.value;render()">
-      <option value="all">すべて</option>${Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}" ${document.getElementById('filterCategory').value===k?'selected':''}>${c.name}</option>`).join('')}
-    </select>
-    <select onchange="document.getElementById('filterMember').value=this.value;render()">
-      <option value="all">全員</option>${members.map(m=>`<option value="${m.id}" ${document.getElementById('filterMember').value===m.id?'selected':''}>${escHtml(m.name)}</option>`).join('')}
-    </select>
-    <input type="text" class="filter-search" placeholder="検索..." value="${escHtml(document.getElementById('filterSearch')?document.getElementById('filterSearch').value:'')}" oninput="if(document.getElementById('filterSearch'))document.getElementById('filterSearch').value=this.value;render()">
-    <span style="margin-left:auto;font-size:0.7rem;color:var(--text-light)">${vis.length}件</span>
-  </div>`+vis.map(t=>{
-    const cat=CATEGORIES[t.category]||CATEGORIES.other;
-    const mem=t.member?getMemberById(t.member):null;
-    const sD=new Date(t.displayStart),eD=new Date(t.displayEnd);
-    const dt=t.displayStart===t.displayEnd?`${sD.getMonth()+1}/${sD.getDate()}`:`${sD.getMonth()+1}/${sD.getDate()} - ${eD.getMonth()+1}/${eD.getDate()}`;
-    return`<div class="mobile-card" onclick="openTaskModal('${t.id}')">
-      <div class="mc-check ${t.done?'checked':''}" onclick="event.stopPropagation();toggleDone('${t.id}',event)">${t.done?'&#10003;':''}</div>
-      <div class="mc-cat-dot" style="background:${cat.color}"></div>
-      <div class="mc-info">
-        <div class="mc-name ${t.done?'done-text':''}">${escHtml(t.name)}</div>
-        <div class="mc-meta">
-          <span>${dt}</span>
-          ${t.recurring?'<span>&#128260;</span>':''}
-          ${mem?`<span class="mc-member" style="background:${mem.color}">${escHtml(mem.name)}</span>`:''}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ===== PWA Registration =====
-function registerSW(){
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('sw.js').catch(function(e){console.log('SW registration failed:',e)});
-  }
-}
-
-// ===== Keyboard =====
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeTaskModal();closeMemberModal();closeTemplateModal();closeActivityModal();closeDataModal();closeSettingsModal();closeMonthZoom();closeUserSelect();closeMenuDropdown()}});
-
-// ===== Init =====
-(async function init(){
-  initDarkMode();
-  initMascotCollapse();
-  loadLocal();
-  document.getElementById('currentYear').textContent=currentYear;
-  render();
-  updateUserBadge();
-  registerSW();
-
-  // Try Firebase reconnect
-  const savedConfig=localStorage.getItem('fs-firebase-config');
-  if(savedConfig){
-    try{
-      const config=JSON.parse(savedConfig);
-      const ok=await initFirebase(config);
-      if(ok){
-        const savedRoom=localStorage.getItem('fs-room-code');
-        if(savedRoom){roomCode=savedRoom;fbMode=true;await attachListeners()}
-      }
-    }catch(e){console.error('Auto-reconnect failed:',e)}
-  }
-
-  // Show wizard on first visit
-  if(!localStorage.getItem('fs-wizard-done')&&tasks.length===0){setTimeout(()=>openWizard(),300)}
-})();
-</script>
+<script src="app.js"></script>
 </body>
 </html>
