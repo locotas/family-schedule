@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家族の年間スケジュール</title>
+<style>
+  :root {
+    --bg: #f5f5f0;
+    --card: #ffffff;
+    --text: #2d2d2d;
+    --text-light: #666;
+    --border: #e0e0d8;
+    --accent: #4a7c59;
+    --accent-hover: #3d6a4b;
+    --header-bg: #4a7c59;
+    --header-text: #fff;
+    --today: #ff6b6b;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --cat-cleaning: #5b9bd5;
+    --cat-pest: #e67e22;
+    --cat-garden: #27ae60;
+    --cat-maintenance: #8e44ad;
+    --cat-seasonal: #e74c3c;
+    --cat-health: #1abc9c;
+    --cat-event: #f39c12;
+    --cat-other: #95a5a6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  header {
+    background: var(--header-bg);
+    color: var(--header-text);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  header h1 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .year-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .year-nav button {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
+
+  .year-nav button:hover { background: rgba(255,255,255,0.35); }
+
+  .year-nav span {
+    font-size: 1.2rem;
+    font-weight: 600;
+    min-width: 60px;
+    text-align: center;
+  }
+
+  .btn-add {
+    background: #fff;
+    color: var(--accent);
+    border: none;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-add:hover {
+    background: #f0f0f0;
+    transform: translateY(-1px);
+  }
+
+  .btn-today {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-today:hover { background: rgba(255,255,255,0.35); }
+
+  .main-container {
+    padding: 20px;
+    overflow-x: auto;
+  }
+
+  .gantt-wrapper {
+    background: var(--card);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: clip;
+    min-width: 1100px;
+  }
+
+  .gantt-header {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    border-bottom: 2px solid var(--border);
+    background: var(--card);
+  }
+
+  .gantt-header-label {
+    padding: 12px 16px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-light);
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .gantt-header-label select {
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .months-header {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+  }
+
+  .month-col {
+    text-align: center;
+    padding: 8px 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-light);
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+
+  .month-col:last-child { border-right: none; }
+
+  .month-col .month-name { display: block; }
+  .month-col .month-days {
+    font-size: 0.65rem;
+    font-weight: 400;
+    color: #999;
+  }
+
+  .gantt-body {
+    min-height: 300px;
+  }
+
+  .gantt-row {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+
+  .gantt-row:hover {
+    background: #fafaf7;
+  }
+
+  .gantt-row:last-child { border-bottom: none; }
+
+  .task-label {
+    padding: 10px 16px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+  }
+
+  .task-cat-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .task-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .task-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .task-date-text {
+    font-size: 0.7rem;
+    color: var(--text-light);
+  }
+
+  .task-delete {
+    background: none;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .task-delete:hover {
+    color: #e74c3c;
+    background: #ffeaea;
+  }
+
+  .task-timeline {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    min-height: 44px;
+  }
+
+  .month-cell {
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+
+  .month-cell:last-child { border-right: none; }
+
+  .task-bar {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 22px;
+    border-radius: 11px;
+    z-index: 10;
+    opacity: 0.85;
+    transition: opacity 0.2s;
+  }
+
+  .task-bar:hover { opacity: 1; }
+
+  .gantt-body-wrapper {
+    position: relative;
+  }
+
+  .today-line-global {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--today);
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  .today-line-global::before {
+    content: '今日';
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+    color: var(--today);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-light);
+  }
+
+  .empty-state .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.4;
+  }
+
+  .empty-state p {
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+  }
+
+  .empty-state .hint {
+    font-size: 0.8rem;
+    color: #aaa;
+  }
+
+  /* Category legend */
+  .legend {
+    padding: 12px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    border-top: 1px solid var(--border);
+    background: #fafaf7;
+    border-radius: 0 0 12px 12px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--text-light);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .legend-item:hover { background: #eee; }
+  .legend-item.active { background: #e8e8e0; }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(2px);
+  }
+
+  .modal-overlay.active {
+    display: flex;
+  }
+
+  .modal {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 28px;
+    width: 90%;
+    max-width: 460px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    animation: modalIn 0.2s ease-out;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .modal h2 {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 6px;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    background: var(--bg);
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(74, 124, 89, 0.1);
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    min-height: 60px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .form-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .form-check input[type="checkbox"] {
+    width: auto;
+  }
+
+  .form-check label {
+    margin-bottom: 0;
+    font-weight: 400;
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 24px;
+  }
+
+  .btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+  }
+
+  .btn-secondary {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover {
+    background: #e8e8e0;
+  }
+
+  .btn-danger {
+    background: #e74c3c;
+    color: white;
+  }
+
+  .btn-danger:hover {
+    background: #c0392b;
+  }
+
+  /* Filter bar */
+  .filter-bar {
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--text-light);
+    background: #fafaf7;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .filter-bar .task-count {
+    margin-left: auto;
+    font-size: 0.75rem;
+  }
+
+  .sort-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    color: var(--text);
+    transition: all 0.2s;
+  }
+
+  .sort-btn:hover, .sort-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    header { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+    header h1 { font-size: 1.1rem; }
+    .main-container { padding: 12px; }
+    .modal { padding: 20px; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>家族の年間スケジュール</h1>
+  <div class="header-controls">
+    <button class="btn-today" onclick="goToday()">今日</button>
+    <div class="year-nav">
+      <button onclick="changeYear(-1)">&lt;</button>
+      <span id="currentYear">2026</span>
+      <button onclick="changeYear(1)">&gt;</button>
+    </div>
+    <button class="btn-add" onclick="openModal()">
+      <span>+</span> 追加
+    </button>
+  </div>
+</header>
+
+<div class="main-container">
+  <div class="gantt-wrapper">
+    <div class="gantt-header">
+      <div class="gantt-header-label">
+        タスク
+        <select id="filterCategory" onchange="render()">
+          <option value="all">すべて</option>
+        </select>
+      </div>
+      <div class="months-header" id="monthsHeader"></div>
+    </div>
+
+    <div class="filter-bar">
+      <span>並び替え:</span>
+      <button class="sort-btn active" data-sort="date" onclick="setSort('date')">日付順</button>
+      <button class="sort-btn" data-sort="category" onclick="setSort('category')">カテゴリ順</button>
+      <button class="sort-btn" data-sort="name" onclick="setSort('name')">名前順</button>
+      <span class="task-count" id="taskCount"></span>
+    </div>
+
+    <div class="gantt-body-wrapper" id="ganttBodyWrapper">
+      <div class="gantt-body" id="ganttBody"></div>
+    </div>
+
+    <div class="legend" id="legend"></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <h2 id="modalTitle">スケジュール追加</h2>
+    <form id="taskForm" onsubmit="saveTask(event)">
+      <input type="hidden" id="taskId">
+      <div class="form-group">
+        <label for="taskName">タスク名</label>
+        <input type="text" id="taskName" required placeholder="例: ゴキブリ駆除剤セット">
+      </div>
+      <div class="form-group">
+        <label for="taskCategory">カテゴリ</label>
+        <select id="taskCategory">
+          <option value="cleaning">掃除</option>
+          <option value="pest">害虫対策</option>
+          <option value="garden">庭・植物</option>
+          <option value="maintenance">メンテナンス</option>
+          <option value="seasonal">季節行事</option>
+          <option value="health">健康・検診</option>
+          <option value="event">イベント</option>
+          <option value="other">その他</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="taskStart">開始日</label>
+          <input type="date" id="taskStart" required>
+        </div>
+        <div class="form-group">
+          <label for="taskEnd">終了日</label>
+          <input type="date" id="taskEnd" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="form-check">
+          <input type="checkbox" id="taskRecurring">
+          <label for="taskRecurring">毎年繰り返す</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="taskMemo">メモ</label>
+        <textarea id="taskMemo" placeholder="詳細やメモがあれば..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+        <button type="button" class="btn btn-danger" id="btnDelete" style="display:none" onclick="deleteTask()">削除</button>
+        <button type="submit" class="btn btn-primary">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const CATEGORIES = {
+  cleaning:    { name: '掃除', color: '#5b9bd5' },
+  pest:        { name: '害虫対策', color: '#e67e22' },
+  garden:      { name: '庭・植物', color: '#27ae60' },
+  maintenance: { name: 'メンテナンス', color: '#8e44ad' },
+  seasonal:    { name: '季節行事', color: '#e74c3c' },
+  health:      { name: '健康・検診', color: '#1abc9c' },
+  event:       { name: 'イベント', color: '#f39c12' },
+  other:       { name: 'その他', color: '#95a5a6' }
+};
+
+const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+let currentYear = new Date().getFullYear();
+let tasks = [];
+let currentSort = 'date';
+let editingId = null;
+
+// Persistence
+function loadTasks() {
+  try {
+    const data = localStorage.getItem('family-schedule-tasks');
+    tasks = data ? JSON.parse(data) : getSampleTasks();
+    if (!data) saveTasks();
+  } catch(e) {
+    tasks = [];
+  }
+}
+
+function saveTasks() {
+  localStorage.setItem('family-schedule-tasks', JSON.stringify(tasks));
+}
+
+function getSampleTasks() {
+  const y = currentYear;
+  return [
+    { id: genId(), name: 'ゴキブリ駆除剤セット', category: 'pest', start: `${y}-02-02`, end: `${y}-02-02`, recurring: true, memo: '各部屋にブラックキャップ設置' },
+    { id: genId(), name: '大掃除', category: 'cleaning', start: `${y}-12-27`, end: `${y}-12-30`, recurring: true, memo: '家族全員で分担' },
+    { id: genId(), name: 'エアコンフィルター掃除', category: 'maintenance', start: `${y}-05-15`, end: `${y}-05-15`, recurring: true, memo: '夏前に全台チェック' },
+    { id: genId(), name: 'エアコンフィルター掃除(秋)', category: 'maintenance', start: `${y}-10-01`, end: `${y}-10-01`, recurring: true, memo: '冬前に再チェック' },
+    { id: genId(), name: '庭の草むしり', category: 'garden', start: `${y}-04-01`, end: `${y}-09-30`, recurring: true, memo: '月1回程度' },
+    { id: genId(), name: '健康診断', category: 'health', start: `${y}-06-10`, end: `${y}-06-10`, recurring: true, memo: '家族全員分予約' },
+    { id: genId(), name: 'お正月準備', category: 'seasonal', start: `${y}-12-25`, end: `${y}-12-31`, recurring: true, memo: 'おせち注文・飾り付け' },
+    { id: genId(), name: '防災用品チェック', category: 'maintenance', start: `${y}-09-01`, end: `${y}-09-01`, recurring: true, memo: '防災の日に合わせて備蓄確認' },
+  ];
+}
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+// Year
+function changeYear(delta) {
+  currentYear += delta;
+  document.getElementById('currentYear').textContent = currentYear;
+  render();
+}
+
+function goToday() {
+  currentYear = new Date().getFullYear();
+  document.getElementById('currentYear').textContent = currentYear;
+  render();
+}
+
+// Sort
+function setSort(type) {
+  currentSort = type;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.toggle('active', b.dataset.sort === type));
+  render();
+}
+
+// Days in month
+function daysInMonth(year, month) {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+function daysInYear(year) {
+  return ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0) ? 366 : 365;
+}
+
+function dayOfYear(dateStr) {
+  const d = new Date(dateStr);
+  const start = new Date(d.getFullYear(), 0, 0);
+  const diff = d - start;
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+// Get tasks visible in the current year (handle recurring)
+function getVisibleTasks() {
+  const filter = document.getElementById('filterCategory').value;
+  let visible = [];
+
+  tasks.forEach(t => {
+    const startYear = new Date(t.start).getFullYear();
+    const endYear = new Date(t.end).getFullYear();
+
+    let show = false;
+    let displayStart = t.start;
+    let displayEnd = t.end;
+
+    if (startYear === currentYear || endYear === currentYear) {
+      show = true;
+    } else if (t.recurring) {
+      // Adjust dates to current year
+      const s = new Date(t.start);
+      const e = new Date(t.end);
+      const daysDiff = Math.round((e - s) / (1000 * 60 * 60 * 24));
+      displayStart = `${currentYear}-${String(s.getMonth()+1).padStart(2,'0')}-${String(s.getDate()).padStart(2,'0')}`;
+      const newEnd = new Date(currentYear, s.getMonth(), s.getDate() + daysDiff);
+      displayEnd = `${newEnd.getFullYear()}-${String(newEnd.getMonth()+1).padStart(2,'0')}-${String(newEnd.getDate()).padStart(2,'0')}`;
+      show = true;
+    }
+
+    if (show && (filter === 'all' || filter === t.category)) {
+      visible.push({ ...t, displayStart, displayEnd });
+    }
+  });
+
+  // Sort
+  visible.sort((a, b) => {
+    if (currentSort === 'date') return a.displayStart.localeCompare(b.displayStart);
+    if (currentSort === 'category') return a.category.localeCompare(b.category) || a.displayStart.localeCompare(b.displayStart);
+    if (currentSort === 'name') return a.name.localeCompare(b.name);
+    return 0;
+  });
+
+  return visible;
+}
+
+// Render
+function render() {
+  renderMonthsHeader();
+  renderBody();
+  renderLegend();
+  renderFilterOptions();
+}
+
+function renderMonthsHeader() {
+  const header = document.getElementById('monthsHeader');
+  header.innerHTML = MONTHS.map((m, i) =>
+    `<div class="month-col">
+      <span class="month-name">${m}</span>
+      <span class="month-days">${daysInMonth(currentYear, i)}日</span>
+    </div>`
+  ).join('');
+}
+
+function renderBody() {
+  const body = document.getElementById('ganttBody');
+  const visible = getVisibleTasks();
+
+  document.getElementById('taskCount').textContent = `${visible.length} 件`;
+
+  if (visible.length === 0) {
+    body.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <p>スケジュールがまだありません</p>
+        <p class="hint">「+ 追加」ボタンからタスクを登録しましょう</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Calculate month start positions (fraction of year)
+  const totalDays = daysInYear(currentYear);
+  const monthStarts = [];
+  let cumDays = 0;
+  for (let m = 0; m < 12; m++) {
+    monthStarts.push(cumDays);
+    cumDays += daysInMonth(currentYear, m);
+  }
+
+  body.innerHTML = visible.map(t => {
+    const cat = CATEGORIES[t.category] || CATEGORIES.other;
+    const startDoy = dayOfYear(t.displayStart);
+    const endDoy = dayOfYear(t.displayEnd);
+
+    // Calculate bar position as percentage of year
+    const leftPct = ((startDoy - 1) / totalDays) * 100;
+    const widthPct = Math.max(((endDoy - startDoy + 1) / totalDays) * 100, 0.5);
+
+    const startD = new Date(t.displayStart);
+    const endD = new Date(t.displayEnd);
+    const dateText = t.displayStart === t.displayEnd
+      ? `${startD.getMonth()+1}/${startD.getDate()}`
+      : `${startD.getMonth()+1}/${startD.getDate()} 〜 ${endD.getMonth()+1}/${endD.getDate()}`;
+
+    return `
+      <div class="gantt-row" onclick="openModal('${t.id}')">
+        <div class="task-label">
+          <div class="task-cat-dot" style="background:${cat.color}"></div>
+          <div class="task-info">
+            <div class="task-name">${escHtml(t.name)}</div>
+            <div class="task-date-text">${dateText}${t.recurring ? ' 🔄' : ''}</div>
+          </div>
+        </div>
+        <div class="task-timeline">
+          ${Array.from({length:12}, (_,i) => `<div class="month-cell"></div>`).join('')}
+          <div class="task-bar" style="left:${leftPct}%;width:${widthPct}%;background:${cat.color}"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Render single today line on the wrapper
+  const wrapper = document.getElementById('ganttBodyWrapper');
+  const existingLine = wrapper.querySelector('.today-line-global');
+  if (existingLine) existingLine.remove();
+
+  const today = new Date();
+  if (today.getFullYear() === currentYear) {
+    const doy = dayOfYear(today.toISOString().split('T')[0]);
+    const pct = ((doy - 0.5) / totalDays) * 100;
+    // Offset for the 240px task label column
+    const line = document.createElement('div');
+    line.className = 'today-line-global';
+    line.style.left = `calc(240px + (100% - 240px) * ${pct / 100})`;
+    wrapper.appendChild(line);
+  }
+}
+
+function renderLegend() {
+  const legend = document.getElementById('legend');
+  legend.innerHTML = Object.entries(CATEGORIES).map(([key, cat]) =>
+    `<div class="legend-item" onclick="toggleFilter('${key}')">
+      <div class="legend-dot" style="background:${cat.color}"></div>
+      ${cat.name}
+    </div>`
+  ).join('');
+}
+
+function renderFilterOptions() {
+  const sel = document.getElementById('filterCategory');
+  const current = sel.value;
+  sel.innerHTML = '<option value="all">すべて</option>' +
+    Object.entries(CATEGORIES).map(([key, cat]) =>
+      `<option value="${key}">${cat.name}</option>`
+    ).join('');
+  sel.value = current;
+}
+
+function toggleFilter(cat) {
+  const sel = document.getElementById('filterCategory');
+  sel.value = sel.value === cat ? 'all' : cat;
+  render();
+}
+
+// Modal
+function openModal(id) {
+  editingId = id || null;
+  const modal = document.getElementById('modalOverlay');
+  const form = document.getElementById('taskForm');
+  const title = document.getElementById('modalTitle');
+  const btnDel = document.getElementById('btnDelete');
+
+  form.reset();
+
+  if (editingId) {
+    const t = tasks.find(x => x.id === editingId);
+    if (!t) return;
+    title.textContent = 'スケジュール編集';
+    document.getElementById('taskId').value = t.id;
+    document.getElementById('taskName').value = t.name;
+    document.getElementById('taskCategory').value = t.category;
+    document.getElementById('taskStart').value = t.start;
+    document.getElementById('taskEnd').value = t.end;
+    document.getElementById('taskRecurring').checked = t.recurring;
+    document.getElementById('taskMemo').value = t.memo || '';
+    btnDel.style.display = 'inline-block';
+  } else {
+    title.textContent = 'スケジュール追加';
+    // Default to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('taskStart').value = today;
+    document.getElementById('taskEnd').value = today;
+    btnDel.style.display = 'none';
+  }
+
+  modal.classList.add('active');
+  setTimeout(() => document.getElementById('taskName').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+  editingId = null;
+}
+
+function closeModalOutside(e) {
+  if (e.target === e.currentTarget) closeModal();
+}
+
+function saveTask(e) {
+  e.preventDefault();
+
+  const name = document.getElementById('taskName').value.trim();
+  const category = document.getElementById('taskCategory').value;
+  const start = document.getElementById('taskStart').value;
+  const end = document.getElementById('taskEnd').value;
+  const recurring = document.getElementById('taskRecurring').checked;
+  const memo = document.getElementById('taskMemo').value.trim();
+
+  if (!name || !start || !end) return;
+
+  if (new Date(end) < new Date(start)) {
+    alert('終了日は開始日以降にしてください');
+    return;
+  }
+
+  if (editingId) {
+    const idx = tasks.findIndex(t => t.id === editingId);
+    if (idx >= 0) {
+      tasks[idx] = { ...tasks[idx], name, category, start, end, recurring, memo };
+    }
+  } else {
+    tasks.push({ id: genId(), name, category, start, end, recurring, memo });
+  }
+
+  saveTasks();
+  closeModal();
+  render();
+}
+
+function deleteTask() {
+  if (!editingId) return;
+  if (!confirm('このスケジュールを削除しますか？')) return;
+  tasks = tasks.filter(t => t.id !== editingId);
+  saveTasks();
+  closeModal();
+  render();
+}
+
+function escHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// Init
+loadTasks();
+render();
+</script>
+
+</body>
+</html>
