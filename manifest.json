@@ -1,0 +1,17 @@
+{
+  "name": "家族の年間スケジュール",
+  "short_name": "家族スケジュール",
+  "description": "家族の年間タスク・スケジュールを管理するアプリ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f5f0",
+  "theme_color": "#4a7c59",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234a7c59'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>📋</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

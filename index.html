@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>家族の年間スケジュール</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4a7c59">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root {
     --bg: #f5f5f0;
@@ -247,6 +251,7 @@
     font-size: 0.5rem; color: white; font-weight: 600;
     overflow: hidden; white-space: nowrap; padding: 0 3px;
     text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    min-width: 8px;
   }
   .task-bar:hover { opacity: 1; }
   .task-bar.is-done { opacity: 0.4; }
@@ -398,11 +403,171 @@
   .activity-time { font-size:0.6rem; color:#aaa; margin-top:2px; }
   .activity-who { font-weight:600; color:var(--accent); }
 
+  /* ===== Menu Dropdown ===== */
+  .menu-dropdown-wrapper { position: relative; }
+  .menu-dropdown {
+    display: none; position: absolute; top: 100%; right: 0; margin-top: 6px;
+    background: var(--card); border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+    min-width: 150px; z-index: 150; overflow: hidden;
+  }
+  .menu-dropdown.open { display: block; }
+  .menu-dropdown button {
+    display: block; width: 100%; padding: 10px 16px; border: none; background: none;
+    font-size: 0.8rem; text-align: left; cursor: pointer; color: var(--text);
+    font-family: inherit; border-bottom: 1px solid var(--border);
+  }
+  .menu-dropdown button:last-child { border-bottom: none; }
+  .menu-dropdown button:hover { background: var(--bg); }
+
+  /* ===== Search Input ===== */
+  .filter-search {
+    padding: 2px 7px; border: 1px solid var(--border); border-radius: 4px;
+    font-size: 0.7rem; font-family: inherit; background: white; width: 120px;
+  }
+  .filter-search:focus { outline: none; border-color: var(--accent); }
+
+  /* ===== Toast ===== */
+  .toast-container {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    z-index: 300; pointer-events: none;
+  }
+  .toast {
+    background: #323232; color: white; padding: 12px 20px; border-radius: 10px;
+    font-size: 0.85rem; display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25); pointer-events: auto;
+    animation: toastIn 0.3s ease-out;
+  }
+  @keyframes toastIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  .toast-undo {
+    background: var(--accent); color: white; border: none; padding: 4px 12px;
+    border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600;
+    font-family: inherit;
+  }
+  .toast-undo:hover { background: var(--accent-hover); }
+
+  /* ===== Mascot Collapse ===== */
+  .mascot-toggle {
+    position: absolute; top: 6px; right: 10px; background: rgba(0,0,0,0.08);
+    border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+    font-size: 0.7rem; display: flex; align-items: center; justify-content: center;
+    color: var(--text-light); z-index: 5;
+  }
+  .mascot-toggle:hover { background: rgba(0,0,0,0.15); }
+  .mascot-area.collapsed {
+    padding: 6px 18px; gap: 10px;
+  }
+  .mascot-area.collapsed .mascot-scene { display: none; }
+  .mascot-area.collapsed .mascot-sub,
+  .mascot-area.collapsed .mascot-stats { display: none; }
+  .mascot-area.collapsed .hearts-row { margin-bottom: 0; }
+  .mascot-area.collapsed .mascot-message { margin-bottom: 0; font-size: 0.8rem; }
+  .mascot-area.collapsed .mascot-info { display: flex; align-items: center; gap: 10px; }
+
+  /* ===== Upcoming Tasks ===== */
+  .upcoming-section {
+    padding: 12px 14px; background: var(--card); border-radius: 12px;
+    box-shadow: var(--shadow); margin-bottom: 14px;
+  }
+  .upcoming-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .upcoming-header h3 { font-size: 0.9rem; font-weight: 600; }
+  .upcoming-toggle {
+    background: var(--bg); border: 1px solid var(--border); padding: 2px 8px;
+    border-radius: 4px; font-size: 0.65rem; cursor: pointer; color: var(--text);
+    font-family: inherit;
+  }
+  .upcoming-toggle:hover { background: var(--accent); color: white; border-color: var(--accent); }
+  .upcoming-list { display: flex; flex-direction: column; gap: 4px; }
+  .upcoming-item {
+    display: flex; align-items: center; gap: 8px; padding: 5px 8px;
+    border-radius: 6px; font-size: 0.75rem; background: var(--bg);
+  }
+  .upcoming-item .task-cat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .upcoming-date { font-size: 0.65rem; color: var(--text-light); min-width: 55px; }
+  .upcoming-name { flex: 1; font-weight: 500; }
+  .upcoming-check {
+    width: 16px; height: 16px; border-radius: 50%; border: 2px solid #ccc;
+    cursor: pointer; flex-shrink: 0; display: flex; align-items: center;
+    justify-content: center; font-size: 0.6rem; color: transparent;
+    background: white; transition: all 0.2s;
+  }
+  .upcoming-check:hover { border-color: var(--accent); }
+  .upcoming-check.checked { background: var(--accent); border-color: var(--accent); color: white; }
+
+  /* ===== Dark Mode ===== */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a; --card: #2d2d2d; --text: #e0e0e0; --text-light: #aaa;
+      --border: #444; --header-bg: #2e5e3e; --shadow: 0 2px 8px rgba(0,0,0,0.3);
+      --done-bg: #1e2e1e; --paused-bg: #2e2a1e;
+    }
+  }
+  body.dark {
+    --bg: #1a1a1a; --card: #2d2d2d; --text: #e0e0e0; --text-light: #aaa;
+    --border: #444; --header-bg: #2e5e3e; --shadow: 0 2px 8px rgba(0,0,0,0.3);
+    --done-bg: #1e2e1e; --paused-bg: #2e2a1e;
+  }
+  body.dark .mascot-area {
+    background: linear-gradient(135deg, #1e2e1e 0%, #252e1e 50%, #2e2a1e 100%);
+  }
+  body.dark .filter-bar, body.dark .legend { background: #252525; }
+  body.dark .month-col:hover { background: #353535; }
+  body.dark .gantt-row:hover { background: #353535; }
+  body.dark .task-check { background: #444; }
+  body.dark .sort-btn { background: #353535; border-color: #555; color: var(--text); }
+  body.dark .filter-search { background: #353535; color: var(--text); border-color: #555; }
+  body.dark .form-group input, body.dark .form-group select, body.dark .form-group textarea {
+    background: #353535; color: var(--text); border-color: #555;
+  }
+  body.dark .menu-dropdown { background: #353535; }
+  body.dark .menu-dropdown button { color: var(--text); }
+  body.dark .menu-dropdown button:hover { background: #444; }
+  body.dark .upcoming-item { background: #353535; }
+  body.dark .zoom-day-col.weekend, body.dark .zoom-day-cell.weekend { background: #2a2020; }
+
+  /* ===== Mobile Card View ===== */
+  .mobile-card-view { display: none; }
+
   @media(max-width:768px){
     header{padding:8px 10px}header h1{font-size:0.95rem}.main-container{padding:8px}
     .modal{padding:16px}.form-row{grid-template-columns:1fr}
     .mascot-area{padding:10px;gap:10px}.mascot-scene{width:65px;height:60px}
     .mascot{width:40px;height:34px}
+    .gantt-wrapper { display: none; }
+    .month-zoom { display: none !important; }
+    .mobile-card-view { display: block; }
+    .mobile-card-view .mobile-card {
+      background: var(--card); border-radius: 10px; padding: 10px 12px;
+      margin-bottom: 8px; box-shadow: var(--shadow); display: flex;
+      align-items: center; gap: 10px;
+    }
+    .mobile-card .mc-check {
+      width: 20px; height: 20px; border-radius: 50%; border: 2px solid #ccc;
+      cursor: pointer; flex-shrink: 0; display: flex; align-items: center;
+      justify-content: center; font-size: 0.7rem; color: transparent;
+      background: white; transition: all 0.2s;
+    }
+    .mobile-card .mc-check.checked { background: var(--accent); border-color: var(--accent); color: white; }
+    .mobile-card .mc-cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .mobile-card .mc-info { flex: 1; min-width: 0; }
+    .mobile-card .mc-name { font-size: 0.8rem; font-weight: 500; }
+    .mobile-card .mc-name.done-text { text-decoration: line-through; color: #aaa; }
+    .mobile-card .mc-meta { font-size: 0.65rem; color: var(--text-light); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .mobile-card .mc-member {
+      display: inline-block; padding: 0 5px; border-radius: 6px;
+      font-size: 0.55rem; font-weight: 600; color: white; line-height: 1.5;
+    }
+    .mobile-filter-bar {
+      padding: 8px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      font-size: 0.7rem; margin-bottom: 8px;
+    }
+    .mobile-filter-bar select, .mobile-filter-bar input {
+      padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 0.7rem; background: var(--card); font-family: inherit;
+    }
+    .filter-search { width: 100px; }
   }
 </style>
 </head>
@@ -424,16 +589,23 @@
       <span id="currentYear">2026</span>
       <button onclick="changeYear(1)">&gt;</button>
     </div>
-    <button class="hdr-btn" onclick="openMemberModal()">家族</button>
-    <button class="hdr-btn" onclick="openTemplateModal()">テンプレ</button>
-    <button class="hdr-btn" onclick="openActivityModal()">履歴</button>
-    <button class="hdr-btn" onclick="openDataModal()">データ</button>
-    <button class="hdr-btn" onclick="openSettingsModal()">設定</button>
+    <div class="menu-dropdown-wrapper">
+      <button class="hdr-btn" id="menuBtn" onclick="toggleMenuDropdown(event)">&#9776; メニュー</button>
+      <div class="menu-dropdown" id="menuDropdown">
+        <button onclick="openMemberModal();closeMenuDropdown()">&#128106; 家族</button>
+        <button onclick="openTemplateModal();closeMenuDropdown()">&#128203; テンプレ</button>
+        <button onclick="openActivityModal();closeMenuDropdown()">&#128338; 履歴</button>
+        <button onclick="openDataModal();closeMenuDropdown()">&#128190; データ</button>
+        <button onclick="openSettingsModal();closeMenuDropdown()">&#9881;&#65039; 設定</button>
+        <button onclick="toggleDarkMode();closeMenuDropdown()" id="darkModeMenuItem">&#127769; ダークモード</button>
+      </div>
+    </div>
     <button class="hdr-btn primary" onclick="openTaskModal()">+ 追加</button>
   </div>
 </header>
 
 <div class="mascot-area" id="mascotArea">
+  <button class="mascot-toggle" id="mascotToggle" onclick="toggleMascotCollapse()">&#9660;</button>
   <div class="mascot-scene">
     <div class="mascot-decorations">
       <span class="deco-flower" id="deco1">🌷</span>
@@ -460,7 +632,10 @@
   </div>
 </div>
 
+<div id="upcomingContainer"></div>
+
 <div class="main-container">
+  <div id="mobileCardView" class="mobile-card-view"></div>
   <div class="gantt-wrapper">
     <div class="gantt-header">
       <div class="gantt-header-label">
@@ -475,6 +650,7 @@
       <button class="sort-btn active" data-sort="date" onclick="setSort('date')">日付順</button>
       <button class="sort-btn" data-sort="category" onclick="setSort('category')">カテゴリ順</button>
       <button class="sort-btn" data-sort="member" onclick="setSort('member')">担当順</button>
+      <input type="text" class="filter-search" id="filterSearch" placeholder="検索..." oninput="render()">
       <span class="task-count" id="taskCount"></span>
     </div>
     <div class="gantt-body-wrapper" id="ganttBodyWrapper">
@@ -510,6 +686,7 @@
       <div id="taskModifiedInfo" style="font-size:0.65rem;color:#aaa;margin-bottom:8px;display:none"></div>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">キャンセル</button>
+        <button type="button" class="btn btn-secondary" id="btnDuplicate" style="display:none" onclick="duplicateTask()">複製</button>
         <button type="button" class="btn btn-danger" id="btnDelete" style="display:none" onclick="deleteTask()">削除</button>
         <button type="submit" class="btn btn-primary">保存</button>
       </div>
@@ -675,6 +852,8 @@
     </div>
   </div>
 </div>
+
+<div class="toast-container" id="toastContainer"></div>
 
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -1169,6 +1348,8 @@ function toggleDone(taskId, e) {
 function getVisibleTasks() {
   const fc=document.getElementById('filterCategory').value;
   const fm=document.getElementById('filterMember').value;
+  const searchEl=document.getElementById('filterSearch');
+  const searchText=(searchEl?searchEl.value:'').trim().toLowerCase();
   let vis=[];
   tasks.forEach(t=>{
     const sy=new Date(t.start).getFullYear(),ey=new Date(t.end).getFullYear();
@@ -1181,6 +1362,7 @@ function getVisibleTasks() {
       de=`${ne.getFullYear()}-${String(ne.getMonth()+1).padStart(2,'0')}-${String(ne.getDate()).padStart(2,'0')}`;
       show=true;
     }
+    if(searchText&&!t.name.toLowerCase().includes(searchText))show=false;
     if(show&&(fc==='all'||fc===t.category)&&(fm==='all'||fm===t.member)){
       vis.push({...t,displayStart:ds,displayEnd:de,done:isTaskDone(t.id)});
     }
@@ -1195,7 +1377,7 @@ function getVisibleTasks() {
 }
 
 // ===== Render =====
-function render(){renderMonthsHeader();renderBody();renderLegend();renderFilters();renderMascot();updateUserBadge()}
+function render(){renderMonthsHeader();renderBody();renderLegend();renderFilters();renderMascot();updateUserBadge();renderUpcoming();renderMobileCards()}
 
 function renderMonthsHeader(){
   document.getElementById('monthsHeader').innerHTML=MONTHS.map((m,i)=>
@@ -1326,6 +1508,7 @@ function openTaskModal(id){
     document.getElementById('taskPaused').checked=!!t.paused;
     document.getElementById('taskMemo').value=t.memo||'';
     document.getElementById('btnDelete').style.display='inline-block';
+    document.getElementById('btnDuplicate').style.display='inline-block';
     if(t.modifiedBy){
       modInfo.style.display='block';
       modInfo.textContent=`最終更新: ${t.modifiedBy}${t.modifiedAt?' ('+relativeTime(t.modifiedAt)+')':''}`;
@@ -1335,6 +1518,7 @@ function openTaskModal(id){
     const td=new Date().toISOString().split('T')[0];
     document.getElementById('taskStart').value=td;document.getElementById('taskEnd').value=td;
     document.getElementById('btnDelete').style.display='none';
+    document.getElementById('btnDuplicate').style.display='none';
   }
   document.getElementById('taskModalOverlay').classList.add('active');
   setTimeout(()=>document.getElementById('taskName').focus(),100);
@@ -1369,13 +1553,63 @@ function saveTask(e){
   if(!fbMode)render();
 }
 
+let deletedTaskBackup=null;
+let deleteUndoTimer=null;
+
 function deleteTask(){
   if(!editingId)return;
-  if(!confirm('このスケジュールを削除しますか？'))return;
   const t=tasks.find(x=>x.id===editingId);
-  const name=t?t.name:'';
-  if(!fbMode)tasks=tasks.filter(x=>x.id!==editingId);
-  DL.deleteTask(editingId,name);
+  if(!t)return;
+  const taskCopy={...t};
+  const taskId=editingId;
+  const compBackup={};
+  Object.keys(completions).forEach(k=>{if(k.startsWith(taskId))compBackup[k]=completions[k]});
+
+  // Remove immediately
+  if(!fbMode){tasks=tasks.filter(x=>x.id!==taskId);Object.keys(compBackup).forEach(k=>delete completions[k])}
+  DL.deleteTask(taskId,taskCopy.name);
+  closeTaskModal();
+  if(!fbMode)render();
+
+  // Store backup and show toast
+  deletedTaskBackup={task:taskCopy,completions:compBackup};
+  showUndoToast(taskCopy.name);
+}
+
+function showUndoToast(name){
+  if(deleteUndoTimer)clearTimeout(deleteUndoTimer);
+  const container=document.getElementById('toastContainer');
+  container.innerHTML=`<div class="toast"><span>「${escHtml(name)}」を削除しました</span><button class="toast-undo" onclick="undoDelete()">元に戻す</button></div>`;
+  deleteUndoTimer=setTimeout(()=>{container.innerHTML='';deletedTaskBackup=null;deleteUndoTimer=null},5000);
+}
+
+function undoDelete(){
+  if(!deletedTaskBackup)return;
+  if(deleteUndoTimer){clearTimeout(deleteUndoTimer);deleteUndoTimer=null}
+  const {task,completions:comp}=deletedTaskBackup;
+  if(!fbMode){tasks.push(task);Object.assign(completions,comp)}
+  DL.saveTask(task,true);
+  // Restore completions
+  Object.entries(comp).forEach(([k,v])=>{
+    completions[k]=v;
+    const parts=k.split('-');
+    if(parts.length>=2){
+      const yr=parseInt(parts[parts.length-1]);
+      if(!isNaN(yr))DL.toggleCompletion(task.id,yr,v);
+    }
+  });
+  deletedTaskBackup=null;
+  document.getElementById('toastContainer').innerHTML='';
+  if(!fbMode)render();
+}
+
+function duplicateTask(){
+  if(!editingId)return;
+  const t=tasks.find(x=>x.id===editingId);
+  if(!t)return;
+  const newTask={...t,id:genId(),name:t.name+' (コピー)'};
+  if(!fbMode)tasks.push(newTask);
+  DL.saveTask(newTask,true);
   closeTaskModal();
   if(!fbMode)render();
 }
@@ -1604,15 +1838,166 @@ function buildWizardSuggestions(){
   ).join('');
 }
 
+// ===== Menu Dropdown =====
+function toggleMenuDropdown(e){
+  e.stopPropagation();
+  document.getElementById('menuDropdown').classList.toggle('open');
+}
+function closeMenuDropdown(){document.getElementById('menuDropdown').classList.remove('open')}
+document.addEventListener('click',function(e){
+  const dd=document.getElementById('menuDropdown');
+  if(dd&&!dd.contains(e.target)&&e.target.id!=='menuBtn')dd.classList.remove('open');
+});
+
+// ===== Mascot Collapse =====
+function toggleMascotCollapse(){
+  const area=document.getElementById('mascotArea');
+  const btn=document.getElementById('mascotToggle');
+  const collapsed=!area.classList.contains('collapsed');
+  area.classList.toggle('collapsed',collapsed);
+  btn.innerHTML=collapsed?'&#9650;':'&#9660;';
+  localStorage.setItem('fs-mascot-collapsed',collapsed?'true':'false');
+}
+function initMascotCollapse(){
+  if(localStorage.getItem('fs-mascot-collapsed')==='true'){
+    document.getElementById('mascotArea').classList.add('collapsed');
+    document.getElementById('mascotToggle').innerHTML='&#9650;';
+  }
+}
+
+// ===== Dark Mode =====
+function toggleDarkMode(){
+  const isDark=document.body.classList.toggle('dark');
+  localStorage.setItem('fs-dark-mode',isDark?'true':'false');
+  updateDarkModeLabel();
+}
+function updateDarkModeLabel(){
+  const el=document.getElementById('darkModeMenuItem');
+  if(!el)return;
+  const isDark=document.body.classList.contains('dark');
+  el.innerHTML=isDark?'&#9728;&#65039; ライトモード':'&#127769; ダークモード';
+}
+function initDarkMode(){
+  if(localStorage.getItem('fs-dark-mode')==='true'){
+    document.body.classList.add('dark');
+  }
+  updateDarkModeLabel();
+}
+
+// ===== Upcoming Tasks =====
+let upcomingDays=7;
+function renderUpcoming(){
+  const container=document.getElementById('upcomingContainer');
+  if(!container)return;
+  const today=new Date();
+  const todayStr=today.toISOString().split('T')[0];
+  const limit=new Date(today);limit.setDate(limit.getDate()+upcomingDays);
+  const limitStr=limit.toISOString().split('T')[0];
+
+  // Get tasks due in upcoming range
+  const upcoming=[];
+  tasks.forEach(t=>{
+    const done=isTaskDone(t.id);
+    if(done||t.paused)return;
+    let ds=t.start,de=t.end;
+    const sy=new Date(t.start).getFullYear(),ey=new Date(t.end).getFullYear();
+    if(t.recurring&&sy!==currentYear&&ey!==currentYear){
+      const s=new Date(t.start),e=new Date(t.end),diff=Math.round((e-s)/864e5);
+      ds=`${currentYear}-${String(s.getMonth()+1).padStart(2,'0')}-${String(s.getDate()).padStart(2,'0')}`;
+      const ne=new Date(currentYear,s.getMonth(),s.getDate()+diff);
+      de=`${ne.getFullYear()}-${String(ne.getMonth()+1).padStart(2,'0')}-${String(ne.getDate()).padStart(2,'0')}`;
+    }
+    // Include if end date >= today and start date <= limit
+    if(de>=todayStr&&ds<=limitStr){
+      upcoming.push({...t,displayStart:ds,displayEnd:de,done:false});
+    }
+  });
+  upcoming.sort((a,b)=>a.displayStart.localeCompare(b.displayStart));
+
+  if(!upcoming.length){container.innerHTML='';return}
+
+  const items=upcoming.slice(0,10).map(t=>{
+    const cat=CATEGORIES[t.category]||CATEGORIES.other;
+    const mem=t.member?getMemberById(t.member):null;
+    const sD=new Date(t.displayStart);
+    const dateLabel=`${sD.getMonth()+1}/${sD.getDate()}`;
+    return`<div class="upcoming-item" onclick="openTaskModal('${t.id}')">
+      <div class="upcoming-check" onclick="event.stopPropagation();toggleDone('${t.id}',event)"></div>
+      <div class="task-cat-dot" style="background:${cat.color}"></div>
+      <span class="upcoming-date">${dateLabel}</span>
+      <span class="upcoming-name">${escHtml(t.name)}</span>
+      ${mem?`<span class="task-member-badge" style="background:${mem.color}">${escHtml(mem.name)}</span>`:''}
+    </div>`;
+  }).join('');
+
+  container.innerHTML=`<div class="upcoming-section" style="margin:0 14px;margin-top:14px">
+    <div class="upcoming-header">
+      <h3>&#128197; 次にやること（${upcomingDays}日以内 ${upcoming.length}件）</h3>
+      <button class="upcoming-toggle" onclick="toggleUpcomingRange()">${upcomingDays===7?'30日表示':'7日表示'}</button>
+    </div>
+    <div class="upcoming-list">${items}</div>
+    ${upcoming.length>10?`<div style="text-align:center;font-size:0.65rem;color:var(--text-light);margin-top:4px">他 ${upcoming.length-10}件</div>`:''}
+  </div>`;
+}
+function toggleUpcomingRange(){upcomingDays=upcomingDays===7?30:7;renderUpcoming()}
+
+// ===== Mobile Card View =====
+function renderMobileCards(){
+  const container=document.getElementById('mobileCardView');
+  if(!container)return;
+  const vis=getVisibleTasks();
+  if(!vis.length){
+    container.innerHTML=`<div style="text-align:center;padding:30px 20px;color:var(--text-light)"><p style="font-size:0.85rem">スケジュールがまだありません</p></div>`;
+    return;
+  }
+  container.innerHTML=`<div class="mobile-filter-bar">
+    <select onchange="document.getElementById('filterCategory').value=this.value;render()">
+      <option value="all">すべて</option>${Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}" ${document.getElementById('filterCategory').value===k?'selected':''}>${c.name}</option>`).join('')}
+    </select>
+    <select onchange="document.getElementById('filterMember').value=this.value;render()">
+      <option value="all">全員</option>${members.map(m=>`<option value="${m.id}" ${document.getElementById('filterMember').value===m.id?'selected':''}>${escHtml(m.name)}</option>`).join('')}
+    </select>
+    <input type="text" class="filter-search" placeholder="検索..." value="${escHtml(document.getElementById('filterSearch')?document.getElementById('filterSearch').value:'')}" oninput="if(document.getElementById('filterSearch'))document.getElementById('filterSearch').value=this.value;render()">
+    <span style="margin-left:auto;font-size:0.7rem;color:var(--text-light)">${vis.length}件</span>
+  </div>`+vis.map(t=>{
+    const cat=CATEGORIES[t.category]||CATEGORIES.other;
+    const mem=t.member?getMemberById(t.member):null;
+    const sD=new Date(t.displayStart),eD=new Date(t.displayEnd);
+    const dt=t.displayStart===t.displayEnd?`${sD.getMonth()+1}/${sD.getDate()}`:`${sD.getMonth()+1}/${sD.getDate()} - ${eD.getMonth()+1}/${eD.getDate()}`;
+    return`<div class="mobile-card" onclick="openTaskModal('${t.id}')">
+      <div class="mc-check ${t.done?'checked':''}" onclick="event.stopPropagation();toggleDone('${t.id}',event)">${t.done?'&#10003;':''}</div>
+      <div class="mc-cat-dot" style="background:${cat.color}"></div>
+      <div class="mc-info">
+        <div class="mc-name ${t.done?'done-text':''}">${escHtml(t.name)}</div>
+        <div class="mc-meta">
+          <span>${dt}</span>
+          ${t.recurring?'<span>&#128260;</span>':''}
+          ${mem?`<span class="mc-member" style="background:${mem.color}">${escHtml(mem.name)}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== PWA Registration =====
+function registerSW(){
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(function(e){console.log('SW registration failed:',e)});
+  }
+}
+
 // ===== Keyboard =====
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeTaskModal();closeMemberModal();closeTemplateModal();closeActivityModal();closeDataModal();closeSettingsModal();closeMonthZoom();closeUserSelect()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeTaskModal();closeMemberModal();closeTemplateModal();closeActivityModal();closeDataModal();closeSettingsModal();closeMonthZoom();closeUserSelect();closeMenuDropdown()}});
 
 // ===== Init =====
 (async function init(){
+  initDarkMode();
+  initMascotCollapse();
   loadLocal();
   document.getElementById('currentYear').textContent=currentYear;
   render();
   updateUserBadge();
+  registerSW();
 
   // Try Firebase reconnect
   const savedConfig=localStorage.getItem('fs-firebase-config');
