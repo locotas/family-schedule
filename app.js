@@ -383,7 +383,14 @@ async function initFirebase(config) {
     auth = firebase.auth();
     await db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
 
-    // Listen for auth state changes - this is the single source of truth
+    // Process any pending redirect result FIRST (mobile Google login)
+    // This must complete before onAuthStateChanged is set up,
+    // otherwise onAuthStateChanged fires with null before redirect is processed
+    try {
+      await auth.getRedirectResult();
+    } catch(e) { /* no pending redirect, that's fine */ }
+
+    // NOW set up auth state listener - user state is correct at this point
     auth.onAuthStateChanged(async user => {
       googleUser = user;
       if (user) {
@@ -424,7 +431,7 @@ async function initFirebase(config) {
           setTimeout(() => openWizard(), 500);
         }
       } else {
-        // Not logged in
+        // Not logged in (redirect already processed, so this is definitive)
         if (localStorage.getItem('fs-login-skipped')) {
           hideLoginScreen();
           if (!localStorage.getItem('fs-wizard-done') && tasks.length === 0) {
