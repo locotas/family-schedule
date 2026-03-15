@@ -372,18 +372,95 @@ function loadLocal() {
 function genId() { return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 
 // ===== Firebase Init =====
+let auth = null;
+let googleUser = null;
+
 async function initFirebase(config) {
   try {
     if (firebase.apps.length) await firebase.app().delete();
     firebase.initializeApp(config);
     db = firebase.firestore();
+    auth = firebase.auth();
     await db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+
+    // Listen for auth state changes
+    auth.onAuthStateChanged(user => {
+      googleUser = user;
+      if (user) {
+        // Auto-set user identity from Google profile
+        currentUserName = user.displayName || 'ゲスト';
+        localStorage.setItem('fs-current-user-name', currentUserName);
+        updateUserBadgeWithGoogle();
+      }
+      updateUserBadgeWithGoogle();
+    });
+
     setSyncStatus('connected');
     return true;
   } catch(e) {
     console.error('Firebase init error:', e);
     setSyncStatus('error');
     return false;
+  }
+}
+
+async function googleSignIn() {
+  if (!auth) { alert('Firebaseの初期化に失敗しました'); return; }
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    const result = await auth.signInWithPopup(provider);
+    googleUser = result.user;
+    currentUserName = googleUser.displayName || 'ユーザー';
+    localStorage.setItem('fs-current-user-name', currentUserName);
+    updateUserBadgeWithGoogle();
+
+    // Auto-create member from Google profile if not exists
+    const existingMember = members.find(m => m.googleUid === googleUser.uid);
+    if (existingMember) {
+      setCurrentUser(existingMember.id);
+    }
+
+    // Show room selection after login
+    const loginSection = document.getElementById('googleLoginSection');
+    const roomSection = document.getElementById('roomSelectSection');
+    if (loginSection) loginSection.style.display = 'none';
+    if (roomSection) roomSection.style.display = 'block';
+
+    // Hide error
+    const errEl = document.getElementById('googleLoginError');
+    if (errEl) errEl.style.display = 'none';
+  } catch(e) {
+    console.error('Google sign-in error:', e);
+    const errEl = document.getElementById('googleLoginError');
+    if (errEl) { errEl.textContent = 'ログインに失敗しました: ' + e.message; errEl.style.display = 'block'; }
+  }
+}
+
+async function googleSignOut() {
+  if (auth) await auth.signOut();
+  googleUser = null;
+  updateUserBadgeWithGoogle();
+}
+
+function updateUserBadgeWithGoogle() {
+  const photo = document.getElementById('badgePhoto');
+  const dot = document.getElementById('badgeDot');
+  const nameEl = document.getElementById('badgeName');
+  if (!photo || !dot || !nameEl) return;
+
+  if (googleUser) {
+    if (googleUser.photoURL) {
+      photo.src = googleUser.photoURL;
+      photo.style.display = 'inline';
+      dot.style.display = 'none';
+    }
+    // If there's a matching member, show that name; otherwise Google name
+    const mem = members.find(m => m.id === currentUserId);
+    nameEl.textContent = mem ? mem.name : googleUser.displayName || 'ユーザー';
+  } else {
+    photo.style.display = 'none';
+    dot.style.display = 'inline';
+    updateUserBadge();
   }
 }
 
@@ -2258,6 +2335,26 @@ function renderMemberView() {
 }
 
 function renderSettingsView() {
+  // Account info
+  const accountEl = document.getElementById('accountInfo');
+  if (accountEl) {
+    if (googleUser) {
+      accountEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg);border-radius:10px">
+          <img src="${googleUser.photoURL || ''}" style="width:40px;height:40px;border-radius:50%;${googleUser.photoURL ? '' : 'display:none'}">
+          <div>
+            <div style="font-weight:600;font-size:0.9rem">${escHtml(googleUser.displayName || '')}</div>
+            <div style="font-size:0.7rem;color:var(--text-light)">${escHtml(googleUser.email || '')}</div>
+          </div>
+          <button class="btn btn-secondary" onclick="googleSignOut()" style="margin-left:auto;font-size:0.7rem;padding:5px 12px">ログアウト</button>
+        </div>`;
+    } else {
+      accountEl.innerHTML = `
+        <p style="font-size:0.8rem;color:var(--text-light);margin-bottom:8px">Googleアカウントでログインすると、自動的に本人が識別されます。</p>
+        <button class="btn btn-primary" onclick="googleSignIn()" style="font-size:0.8rem">Googleでログイン</button>`;
+    }
+  }
+
   // Settings content is mostly static HTML; just update dynamic parts
   const config = localStorage.getItem('fs-firebase-config');
   const input = document.getElementById('fbConfigInput');
@@ -2364,7 +2461,17 @@ document.addEventListener('keydown',e=>{
 function showJoinRoomModal() {
   if (roomCode) return; // Already in a room
   const overlay = document.getElementById('joinRoomOverlay');
-  if (overlay) overlay.classList.add('active');
+  if (!overlay) return;
+
+  // If already logged in with Google, skip to room selection
+  if (googleUser) {
+    const loginSection = document.getElementById('googleLoginSection');
+    const roomSection = document.getElementById('roomSelectSection');
+    if (loginSection) loginSection.style.display = 'none';
+    if (roomSection) roomSection.style.display = 'block';
+  }
+
+  overlay.classList.add('active');
 }
 function closeJoinRoomModal() {
   const overlay = document.getElementById('joinRoomOverlay');
@@ -2374,21 +2481,50 @@ async function quickCreateRoom() {
   const name = document.getElementById('quickRoomName').value.trim();
   if (!name) { alert('家族名を入力してください'); return; }
   await createRoom(name);
+  // Auto-add current Google user as member
+  await autoAddGoogleMember();
   closeJoinRoomModal();
-  // Auto-prompt who are you if members exist
-  setTimeout(promptWhoAreYou, 600);
 }
 async function quickJoinRoom() {
   const code = document.getElementById('quickRoomCode').value.trim();
   if (code.length !== 6) { alert('6桁のルームコードを入力してください'); return; }
   const ok = await joinRoom(code);
   if (ok) {
+    // Auto-add current Google user as member if not already in room
+    await autoAddGoogleMember();
     closeJoinRoomModal();
-    // Auto-prompt who are you after data syncs
-    setTimeout(promptWhoAreYou, 1000);
   } else {
     alert('このコードのルームは見つかりません');
   }
+}
+
+// Auto-create a member from Google profile and select it
+async function autoAddGoogleMember() {
+  if (!googleUser) { setTimeout(promptWhoAreYou, 600); return; }
+
+  // Wait for members to sync from Firestore
+  await new Promise(r => setTimeout(r, 800));
+
+  // Check if this Google user already has a member
+  const existing = members.find(m => m.googleUid === googleUser.uid);
+  if (existing) {
+    setCurrentUser(existing.id);
+    return;
+  }
+
+  // Create new member from Google profile
+  const colors = ['#5b9bd5','#e67e22','#27ae60','#8e44ad','#e74c3c','#1abc9c','#f39c12','#e91e63'];
+  const member = {
+    id: genId(),
+    name: googleUser.displayName || 'ユーザー',
+    color: colors[members.length % colors.length],
+    googleUid: googleUser.uid,
+    photoURL: googleUser.photoURL || ''
+  };
+  await DL.addMember(member);
+  // Wait for sync then select
+  await new Promise(r => setTimeout(r, 500));
+  setCurrentUser(member.id);
 }
 
 // Automatically ask "who are you" if not set, or auto-select if only 1 member
