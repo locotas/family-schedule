@@ -336,26 +336,7 @@
         <h3>Firebase接続
           <span class="settings-status" id="fbStatus"></span>
         </h3>
-        <p>家族間でデータをリアルタイム同期するには、Firebaseプロジェクトが必要です。</p>
-        <details style="margin-bottom:8px">
-          <summary style="font-size:0.75rem;cursor:pointer;color:var(--accent);font-weight:600">セットアップ手順</summary>
-          <ol class="steps-list">
-            <li><a href="https://console.firebase.google.com/" target="_blank">Firebase Console</a> にアクセス</li>
-            <li>「プロジェクトを追加」で新規プロジェクト作成</li>
-            <li>左メニュー「Firestore Database」→「データベースを作成」→テストモードで開始</li>
-            <li>プロジェクト設定 → 「ウェブアプリを追加」</li>
-            <li>表示される firebaseConfig の中身（{ apiKey: ... }）をコピー</li>
-            <li>下のテキストエリアに貼り付けて「保存」を押す</li>
-          </ol>
-        </details>
-        <div class="form-group">
-          <label>Firebase Config (JSON)</label>
-          <textarea id="fbConfigInput" style="min-height:80px;font-family:monospace;font-size:0.75rem" placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "...", ... }'></textarea>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-primary" onclick="saveFirebaseConfig()">保存して接続</button>
-          <button class="btn btn-secondary" onclick="clearFirebaseConfig()">設定をクリア</button>
-        </div>
+        <p>Firebaseに自動接続されます。家族とデータを同期するには、ルームを作成して招待リンクを共有してください。</p>
       </div>
 
       <div class="settings-section" id="roomSection" style="display:none">
@@ -542,6 +523,33 @@
     <div class="modal-actions">
       <button class="btn btn-secondary" id="wizBtnBack" onclick="wizardBack()" style="display:none">戻る</button>
       <button class="btn btn-primary" id="wizBtnNext" onclick="wizardNext()">次へ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Join/Create Room Modal (shown on first visit) -->
+<div class="modal-overlay" id="joinRoomOverlay">
+  <div class="modal" style="max-width:420px">
+    <h2>家族ルームに参加しよう</h2>
+    <p style="font-size:0.8rem;color:var(--text-light);margin-bottom:16px">ルームを作るか、家族から共有されたコードで参加してください。スキップしてローカルで使うこともできます。</p>
+
+    <div style="display:flex;gap:12px;margin-bottom:16px">
+      <div style="flex:1;padding:16px;border:1px solid var(--border);border-radius:12px;text-align:center">
+        <div style="font-size:1.5rem;margin-bottom:8px">🏠</div>
+        <div style="font-size:0.8rem;font-weight:600;margin-bottom:8px">ルームを作る</div>
+        <input type="text" id="quickRoomName" placeholder="家族名（例: 田中家）" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-size:0.8rem;margin-bottom:8px">
+        <button class="btn btn-primary" style="width:100%" onclick="quickCreateRoom()">作成</button>
+      </div>
+      <div style="flex:1;padding:16px;border:1px solid var(--border);border-radius:12px;text-align:center">
+        <div style="font-size:1.5rem;margin-bottom:8px">🔗</div>
+        <div style="font-size:0.8rem;font-weight:600;margin-bottom:8px">コードで参加</div>
+        <input type="text" id="quickRoomCode" placeholder="6桁コード" maxlength="6" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-size:0.8rem;text-transform:uppercase;text-align:center;letter-spacing:2px;margin-bottom:8px">
+        <button class="btn btn-primary" style="width:100%" onclick="quickJoinRoom()">参加</button>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="justify-content:center">
+      <button class="btn btn-secondary" onclick="closeJoinRoomModal()">あとで（ローカルで使う）</button>
     </div>
   </div>
 </div>

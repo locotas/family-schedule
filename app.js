@@ -1,3 +1,14 @@
+// ===== Firebase Config (embedded) =====
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD4sMwshDPUsh8bnWeSuB9XDe6840W-5ew",
+  authDomain: "family-shedule.firebaseapp.com",
+  projectId: "family-shedule",
+  storageBucket: "family-shedule.firebasestorage.app",
+  messagingSenderId: "541785971340",
+  appId: "1:541785971340:web:002f400e54d2b562f2b9a9",
+  measurementId: "G-LCGCXJ6GJ1"
+};
+
 // ===== Constants =====
 const CATEGORIES = {
   cleaning:{name:'掃除',color:'#5b9bd5',icon:'🧹'},
@@ -302,13 +313,14 @@ function initRouter() {
   // Listen for hash changes (browser back/forward)
   window.addEventListener('hashchange', () => {
     const hash = window.location.hash.replace('#', '') || 'schedule';
+    if (hash.startsWith('join=')) return; // Ignore join links, handled in init
     if (hash !== currentView) navigateTo(hash);
   });
 
   // Determine initial view
   const hash = window.location.hash.replace('#', '');
   const lastView = localStorage.getItem('fs-last-view');
-  const initialView = hash || lastView || 'schedule';
+  const initialView = (hash && !hash.startsWith('join=')) ? hash : (lastView || 'schedule');
   navigateTo(initialView);
 }
 
@@ -534,8 +546,9 @@ function renderRoomInfo() {
     section.innerHTML = `<h3>家族ルーム</h3>
       <p>ルームコードを家族と共有してください</p>
       <div class="room-code-display">${roomCode}</div>
-      <div style="display:flex;gap:6px;justify-content:center">
-        <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('${roomCode}');alert('コピーしました')">コピー</button>
+      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('${roomCode}');alert('コピーしました')">コードをコピー</button>
+        <button class="btn btn-primary" onclick="copyInviteLink()">招待リンクをコピー</button>
         <button class="btn btn-danger" onclick="if(confirm('ルームから退出しますか？'))leaveRoom()">退出</button>
       </div>`;
     renderUserSelectList();
@@ -2303,19 +2316,79 @@ document.addEventListener('keydown',e=>{
   // Initialize the view router
   initRouter();
 
-  // Try Firebase reconnect
-  const savedConfig=localStorage.getItem('fs-firebase-config');
-  if(savedConfig){
-    try{
-      const config=JSON.parse(savedConfig);
-      const ok=await initFirebase(config);
-      if(ok){
-        const savedRoom=localStorage.getItem('fs-room-code');
-        if(savedRoom){roomCode=savedRoom;fbMode=true;await attachListeners()}
+  // Auto-connect Firebase with embedded config
+  try {
+    const ok = await initFirebase(FIREBASE_CONFIG);
+    if (ok) {
+      // Check for invite link: #join=ROOMCODE
+      const hash = window.location.hash;
+      const joinMatch = hash.match(/[#&]join=([A-Z0-9]{6})/i);
+      if (joinMatch) {
+        const code = joinMatch[1].toUpperCase();
+        const joined = await joinRoom(code);
+        if (joined) {
+          // Clear the join param from hash, navigate to schedule
+          window.location.hash = '#schedule';
+          showJoinRoomModal();
+        } else {
+          alert('ルームコード「' + code + '」は見つかりません');
+        }
+      } else {
+        // Reconnect to saved room
+        const savedRoom = localStorage.getItem('fs-room-code');
+        if (savedRoom) {
+          roomCode = savedRoom;
+          fbMode = true;
+          await attachListeners();
+        } else {
+          // No room yet - show join/create prompt
+          setTimeout(() => showJoinRoomModal(), 500);
+        }
       }
-    }catch(e){console.error('Auto-reconnect failed:',e)}
+    }
+  } catch(e) {
+    console.error('Firebase auto-connect failed:', e);
+    // Falls back to localStorage mode silently
   }
 
   // Show wizard on first visit
   if(!localStorage.getItem('fs-wizard-done')&&tasks.length===0){setTimeout(()=>openWizard(),300)}
 })();
+
+// Show join/create room modal for first-time users
+function showJoinRoomModal() {
+  if (roomCode) return; // Already in a room
+  const overlay = document.getElementById('joinRoomOverlay');
+  if (overlay) overlay.classList.add('active');
+}
+function closeJoinRoomModal() {
+  const overlay = document.getElementById('joinRoomOverlay');
+  if (overlay) overlay.classList.remove('active');
+}
+async function quickCreateRoom() {
+  const name = document.getElementById('quickRoomName').value.trim();
+  if (!name) { alert('家族名を入力してください'); return; }
+  await createRoom(name);
+  closeJoinRoomModal();
+  alert('ルーム作成完了！コード: ' + roomCode + '\nこのコードを家族に共有してください');
+}
+async function quickJoinRoom() {
+  const code = document.getElementById('quickRoomCode').value.trim();
+  if (code.length !== 6) { alert('6桁のルームコードを入力してください'); return; }
+  const ok = await joinRoom(code);
+  if (ok) {
+    closeJoinRoomModal();
+    alert('ルームに参加しました！');
+  } else {
+    alert('このコードのルームは見つかりません');
+  }
+}
+function getInviteLink() {
+  if (!roomCode) return '';
+  return window.location.origin + window.location.pathname + '#join=' + roomCode;
+}
+function copyInviteLink() {
+  const link = getInviteLink();
+  if (!link) { alert('まずルームを作成してください'); return; }
+  navigator.clipboard.writeText(link).then(() => alert('招待リンクをコピーしました！\n' + link));
+}
