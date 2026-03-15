@@ -408,6 +408,12 @@ async function googleSignIn() {
   if (!auth) { alert('Firebaseの初期化に失敗しました'); return; }
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
+    // Use redirect on mobile (popup is blocked by in-app browsers)
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      await auth.signInWithRedirect(provider);
+      return; // Page will reload after redirect
+    }
     const result = await auth.signInWithPopup(provider);
     googleUser = result.user;
     currentUserName = googleUser.displayName || 'ユーザー';
@@ -2444,6 +2450,17 @@ document.addEventListener('keydown',e=>{
   try {
     const ok = await initFirebase(FIREBASE_CONFIG);
     if (ok) {
+      // Handle redirect result (mobile Google login)
+      try {
+        const redirectResult = await auth.getRedirectResult();
+        if (redirectResult && redirectResult.user) {
+          googleUser = redirectResult.user;
+          currentUserName = googleUser.displayName || 'ユーザー';
+          localStorage.setItem('fs-current-user-name', currentUserName);
+          updateUserBadgeWithGoogle();
+        }
+      } catch(e) { console.log('No redirect result:', e); }
+
       // Wait for auth state to resolve
       await new Promise(resolve => {
         const unsub = auth.onAuthStateChanged(user => {
