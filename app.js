@@ -1406,6 +1406,8 @@ function wizardNext(){
     });
     localStorage.setItem('fs-wizard-done','true');DL.saveLocal();
     document.getElementById('wizardOverlay').classList.remove('active');render();
+    // Auto-select user after wizard
+    setTimeout(promptWhoAreYou, 500);
   }
 }
 function wizardBack(){if(wizardStep>0){wizardStep--;updateWizardUI()}}
@@ -2353,6 +2355,9 @@ document.addEventListener('keydown',e=>{
 
   // Show wizard on first visit
   if(!localStorage.getItem('fs-wizard-done')&&tasks.length===0){setTimeout(()=>openWizard(),300)}
+
+  // Auto-prompt who are you if members exist but user not set (after everything loads)
+  setTimeout(promptWhoAreYou, 1500);
 })();
 
 // Show join/create room modal for first-time users
@@ -2370,7 +2375,8 @@ async function quickCreateRoom() {
   if (!name) { alert('家族名を入力してください'); return; }
   await createRoom(name);
   closeJoinRoomModal();
-  alert('ルーム作成完了！コード: ' + roomCode + '\nこのコードを家族に共有してください');
+  // Auto-prompt who are you if members exist
+  setTimeout(promptWhoAreYou, 600);
 }
 async function quickJoinRoom() {
   const code = document.getElementById('quickRoomCode').value.trim();
@@ -2378,10 +2384,24 @@ async function quickJoinRoom() {
   const ok = await joinRoom(code);
   if (ok) {
     closeJoinRoomModal();
-    alert('ルームに参加しました！');
+    // Auto-prompt who are you after data syncs
+    setTimeout(promptWhoAreYou, 1000);
   } else {
     alert('このコードのルームは見つかりません');
   }
+}
+
+// Automatically ask "who are you" if not set, or auto-select if only 1 member
+function promptWhoAreYou() {
+  if (currentUserId && members.find(m => m.id === currentUserId)) return; // Already set
+  if (members.length === 0) return; // No members yet
+  if (members.length === 1) {
+    // Only one member - auto select
+    setCurrentUser(members[0].id);
+    return;
+  }
+  // Multiple members - ask
+  openUserSelect();
 }
 function getInviteLink() {
   if (!roomCode) return '';
