@@ -45,6 +45,22 @@ let pointsHistory = [];       // Feature 6
 let weatherData = null;       // Feature 8
 let weatherSettings = { lat: 35.6762, lon: 139.6503 }; // Feature 8: Tokyo default
 
+// ===== View/Router State =====
+let currentView = 'schedule';
+const VIEW_TITLES = {
+  schedule: '年間スケジュール',
+  upcoming: '次にやること',
+  cost: 'コスト管理',
+  shopping: '買い物リスト',
+  report: '年間レポート',
+  appliance: '家電・設備管理',
+  rewards: 'ポイント & ごほうび',
+  stock: 'ストック管理',
+  activity: '変更履歴',
+  members: '家族メンバー管理',
+  settings: '設定'
+};
+
 // ===== Firebase State =====
 let db = null;
 let fbMode = false;
@@ -225,6 +241,92 @@ const DL = {
   }
 };
 
+// ===== View Router =====
+function navigateTo(viewName) {
+  if (!VIEW_TITLES[viewName]) viewName = 'schedule';
+  currentView = viewName;
+
+  // Update URL hash
+  window.location.hash = viewName === 'schedule' ? '' : viewName;
+
+  // Save last view
+  localStorage.setItem('fs-last-view', viewName);
+
+  // Hide all views, show target
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const target = document.getElementById('view-' + viewName);
+  if (target) target.classList.add('active');
+
+  // Update page title
+  const titleEl = document.getElementById('pageTitle');
+  if (titleEl) titleEl.textContent = VIEW_TITLES[viewName] || '';
+
+  // Update sidebar active state
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.toggle('active', n.dataset.view === viewName);
+  });
+
+  // Update mobile tab bar active state
+  document.querySelectorAll('.tab-item[data-view]').forEach(t => {
+    t.classList.toggle('active', t.dataset.view === viewName);
+  });
+
+  // Show/hide schedule-specific controls
+  const schedCtrl = document.getElementById('scheduleControls');
+  if (schedCtrl) schedCtrl.style.display = viewName === 'schedule' ? 'flex' : 'none';
+
+  // Close sidebar on mobile after navigation
+  closeSidebar();
+
+  // Render the target view content
+  renderCurrentView();
+}
+
+function renderCurrentView() {
+  switch (currentView) {
+    case 'schedule': render(); break;
+    case 'upcoming': renderUpcomingView(); break;
+    case 'cost': renderCostView(); break;
+    case 'shopping': renderShoppingList(); break;
+    case 'report': renderReportView(); break;
+    case 'appliance': renderApplianceList(); break;
+    case 'rewards': renderRewardsView(); break;
+    case 'stock': renderStockList(); break;
+    case 'activity': renderActivityView(); break;
+    case 'members': renderMemberView(); break;
+    case 'settings': renderSettingsView(); break;
+  }
+}
+
+function initRouter() {
+  // Listen for hash changes (browser back/forward)
+  window.addEventListener('hashchange', () => {
+    const hash = window.location.hash.replace('#', '') || 'schedule';
+    if (hash !== currentView) navigateTo(hash);
+  });
+
+  // Determine initial view
+  const hash = window.location.hash.replace('#', '');
+  const lastView = localStorage.getItem('fs-last-view');
+  const initialView = hash || lastView || 'schedule';
+  navigateTo(initialView);
+}
+
+// ===== Sidebar Toggle =====
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('active');
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (sidebar) sidebar.classList.remove('open');
+  if (overlay) overlay.classList.remove('active');
+}
+
 // ===== Load =====
 function loadLocal() {
   try {
@@ -275,11 +377,12 @@ async function initFirebase(config) {
 
 function setSyncStatus(status) {
   const dot = document.getElementById('syncDot');
+  const label = document.getElementById('syncLabel');
   dot.className = 'sync-dot';
-  if (status==='connected') { dot.classList.add('connected'); dot.title='Firebase接続中'; }
-  else if (status==='error') { dot.classList.add('error'); dot.title='接続エラー'; }
-  else if (status==='syncing') { dot.classList.add('syncing'); dot.title='同期中...'; }
-  else { dot.title='ローカルモード'; }
+  if (status==='connected') { dot.classList.add('connected'); dot.title='Firebase接続中'; if(label) label.textContent='接続中'; }
+  else if (status==='error') { dot.classList.add('error'); dot.title='接続エラー'; if(label) label.textContent='エラー'; }
+  else if (status==='syncing') { dot.classList.add('syncing'); dot.title='同期中...'; if(label) label.textContent='同期中'; }
+  else { dot.title='ローカルモード'; if(label) label.textContent='ローカル'; }
 }
 
 async function attachListeners() {
@@ -421,6 +524,7 @@ function leaveRoom() {
 function renderRoomInfo() {
   const section = document.getElementById('roomSection');
   const userSection = document.getElementById('userSelectSection');
+  if (!section || !userSection) return;
 
   if (!db) { section.style.display='none'; userSection.style.display='none'; return; }
   section.style.display = 'block';
@@ -476,18 +580,16 @@ function setCurrentUser(memberId) {
 }
 
 function updateUserBadge() {
-  const badge = document.getElementById('currentUserBadge');
+  const badgeDot = document.getElementById('badgeDot');
+  const badgeName = document.getElementById('badgeName');
+  if (!badgeDot || !badgeName) return;
   const mem = members.find(m=>m.id===currentUserId);
   if (mem) {
-    badge.classList.add('active');
-    document.getElementById('badgeDot').style.background = mem.color;
-    document.getElementById('badgeName').textContent = mem.name;
-  } else if (members.length) {
-    badge.classList.add('active');
-    document.getElementById('badgeDot').style.background = '#999';
-    document.getElementById('badgeName').textContent = 'ゲスト';
+    badgeDot.style.background = mem.color;
+    badgeName.textContent = mem.name;
   } else {
-    badge.classList.remove('active');
+    badgeDot.style.background = '#999';
+    badgeName.textContent = 'ゲスト';
   }
 }
 
@@ -519,24 +621,8 @@ function openUserSelect() {
 function closeUserSelect() { document.getElementById('userSelectOverlay').classList.remove('active'); }
 
 // ===== Settings Modal =====
-function openSettingsModal() {
-  const config = localStorage.getItem('fs-firebase-config');
-  if (config) document.getElementById('fbConfigInput').value = config;
-
-  const st = document.getElementById('fbStatus');
-  if (fbMode) { st.className='settings-status on'; st.textContent='接続中'; }
-  else if (config) { st.className='settings-status off'; st.textContent='未接続'; }
-  else { st.className='settings-status off'; st.textContent='未設定'; }
-
-  // Feature 8: Weather settings
-  document.getElementById('weatherLat').value = weatherSettings.lat;
-  document.getElementById('weatherLon').value = weatherSettings.lon;
-
-  renderRoomInfo();
-  document.getElementById('btnReminder').textContent = reminderEnabled ? '通知をオフにする' : '通知をオンにする';
-  document.getElementById('settingsModalOverlay').classList.add('active');
-}
-function closeSettingsModal() { document.getElementById('settingsModalOverlay').classList.remove('active'); }
+function openSettingsModal() { navigateTo('settings'); }
+function closeSettingsModal() { navigateTo('schedule'); }
 
 function saveWeatherSettings() {
   weatherSettings.lat = parseFloat(document.getElementById('weatherLat').value) || 35.6762;
@@ -728,7 +814,7 @@ function getVisibleTasks() {
 }
 
 // ===== Render =====
-function render(){renderMonthsHeader();renderBody();renderLegend();renderFilters();renderMascot();updateUserBadge();renderUpcoming();renderMobileCards();renderPointsDisplay()}
+function render(){renderMonthsHeader();renderBody();renderLegend();renderFilters();renderMascot();updateUserBadge();renderMobileCards();renderPointsDisplay();renderSidebarMascot()}
 
 function renderMonthsHeader(){
   document.getElementById('monthsHeader').innerHTML=MONTHS.map((m,i)=>
@@ -839,6 +925,51 @@ function renderMascot(){
   scene.classList.add(`mascot-state-${state}`);
   document.getElementById('mascotMessage').textContent=msg;
   document.getElementById('mascotSub').textContent=sub;
+}
+
+// ===== Sidebar Mascot =====
+function renderSidebarMascot() {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const vis = getVisibleTasks();
+  let done=0, overdue=0;
+  vis.forEach(t => { if(t.paused) return; if(t.done) done++; else if(t.displayEnd<todayStr) overdue++; });
+  const total = vis.filter(t=>!t.paused).length;
+  const overdueRate = total > 0 ? overdue/total : 0;
+  const hearts = 5;
+  let filled = Math.round((1-overdueRate)*hearts);
+  if(overdue>0 && filled===hearts) filled = hearts-1;
+  filled = Math.max(0, Math.min(hearts, filled));
+
+  const heartsRow = document.querySelector('.sidebar-mascot-info .hearts-row');
+  if (heartsRow) {
+    heartsRow.innerHTML = Array.from({length:hearts},(_,i)=>`<span class="heart ${i<filled?'':'empty'}">❤️</span>`).join('');
+  }
+
+  let msg = 'スケちゃん';
+  if (!total) msg = 'タスクを追加してね';
+  else if (overdueRate === 0 && done/total >= 0.8) msg = 'すごい！最高！';
+  else if (overdueRate === 0) msg = 'いい調子！';
+  else if (overdueRate < 0.3) msg = 'ちょっと確認してね';
+  else msg = '元気にしてあげて...';
+
+  const msgEl = document.getElementById('mascotMessageMini');
+  if (msgEl) msgEl.textContent = msg;
+
+  // Apply mascot state class to body for sidebar mascot coloring
+  const scene = document.getElementById('mascotArea');
+  if (scene) {
+    const stateClass = Array.from(scene.classList).find(c => c.startsWith('mascot-state-'));
+    const sidebarMascot = document.getElementById('sidebarMascot');
+    if (sidebarMascot && stateClass) {
+      sidebarMascot.className = 'sidebar-mascot';
+      // We apply it to the parent that contains the mini mascot
+      const parent = sidebarMascot.closest('.sidebar');
+      if (parent) {
+        parent.classList.remove('mascot-state-great','mascot-state-good','mascot-state-ok','mascot-state-sad','mascot-state-bad');
+        parent.classList.add(stateClass);
+      }
+    }
+  }
 }
 
 // ===== Feature 6: Points Display in Mascot Area =====
@@ -1054,13 +1185,12 @@ function duplicateTask(){
 }
 
 // ===== Member Modal =====
-function openMemberModal(){renderMemberList();document.getElementById('memberModalOverlay').classList.add('active')}
-function closeMemberModal(){document.getElementById('memberModalOverlay').classList.remove('active');render()}
+function openMemberModal() { navigateTo('members'); }
+function closeMemberModal() { navigateTo('schedule'); render(); }
 
 function renderMemberList(){
-  document.getElementById('memberList').innerHTML=members.length===0
-    ?'<p style="font-size:0.75rem;color:var(--text-light);padding:6px 0">まだメンバーがいません</p>'
-    :members.map(m=>`<div class="member-item"><div class="member-color" style="background:${m.color}"></div><span class="member-name-display">${escHtml(m.name)}</span><button class="member-remove" onclick="removeMember('${m.id}')">✕</button></div>`).join('');
+  // Render in the view-based member list
+  renderMemberView();
 }
 
 function addMember(){
@@ -1072,16 +1202,16 @@ function addMember(){
   DL.addMember(member);
   document.getElementById('newMemberName').value='';
   document.getElementById('newMemberColor').value=MEMBER_COLORS[members.length%MEMBER_COLORS.length];
-  if(!fbMode)renderMemberList();
-  else setTimeout(renderMemberList,500);
+  if(!fbMode)renderMemberView();
+  else setTimeout(renderMemberView,500);
 }
 
 function removeMember(id){
   if(!confirm('このメンバーを削除しますか？'))return;
   if(!fbMode){members=members.filter(m=>m.id!==id);tasks.forEach(t=>{if(t.member===id)t.member=''})}
   DL.removeMember(id);
-  if(!fbMode)renderMemberList();
-  else setTimeout(renderMemberList,500);
+  if(!fbMode)renderMemberView();
+  else setTimeout(renderMemberView,500);
 }
 
 // ===== Template Modal =====
@@ -1116,30 +1246,17 @@ function addFromTemplate(btn,name,cat,s,e,memo){
 }
 
 // ===== Activity Modal =====
-function openActivityModal(){
-  renderActivityList();
-  document.getElementById('activityModalOverlay').classList.add('active');
-}
-function closeActivityModal(){document.getElementById('activityModalOverlay').classList.remove('active')}
+function openActivityModal() { navigateTo('activity'); }
+function closeActivityModal() { navigateTo('schedule'); }
 
 function renderActivityList(){
-  const list=document.getElementById('activityList');
-  if(!activityLog.length){list.innerHTML='<p style="font-size:0.8rem;color:var(--text-light);text-align:center;padding:20px">履歴はまだありません</p>';return}
-  const icons={task_created:'📝',task_updated:'✏️',task_deleted:'🗑️',task_completed:'✅',task_uncompleted:'↩️',member_added:'👤',member_removed:'👤'};
-  list.innerHTML=activityLog.slice(0,100).map(a=>
-    `<div class="activity-item">
-      <div class="activity-icon">${icons[a.action]||'📋'}</div>
-      <div class="activity-content">
-        <div class="activity-desc"><span class="activity-who">${escHtml(a.performedBy||'')}</span> ${escHtml(a.details||'')}</div>
-        <div class="activity-time">${relativeTime(a.timestamp)}</div>
-      </div>
-    </div>`
-  ).join('');
+  // Now delegates to the view render
+  renderActivityView();
 }
 
 // ===== Data Modal =====
-function openDataModal(){document.getElementById('dataModalOverlay').classList.add('active')}
-function closeDataModal(){document.getElementById('dataModalOverlay').classList.remove('active')}
+function openDataModal() { navigateTo('settings'); }
+function closeDataModal() { navigateTo('schedule'); }
 
 function exportData(){
   const data={tasks,members,completions,activityLog,shoppingList,appliances,stockItems,rewards,pointsHistory,exportDate:new Date().toISOString()};
@@ -1289,16 +1406,9 @@ function buildWizardSuggestions(){
   ).join('');
 }
 
-// ===== Menu Dropdown =====
-function toggleMenuDropdown(e){
-  e.stopPropagation();
-  document.getElementById('menuDropdown').classList.toggle('open');
-}
-function closeMenuDropdown(){document.getElementById('menuDropdown').classList.remove('open')}
-document.addEventListener('click',function(e){
-  const dd=document.getElementById('menuDropdown');
-  if(dd&&!dd.contains(e.target)&&e.target.id!=='menuBtn')dd.classList.remove('open');
-});
+// ===== Menu Dropdown (legacy stubs) =====
+function toggleMenuDropdown(e){ if(e) e.stopPropagation(); }
+function closeMenuDropdown(){}
 
 // ===== Mascot Collapse =====
 function toggleMascotCollapse(){
@@ -1324,9 +1434,15 @@ function toggleDarkMode(){
 }
 function updateDarkModeLabel(){
   const el=document.getElementById('darkModeMenuItem');
-  if(!el)return;
-  const isDark=document.body.classList.contains('dark');
-  el.innerHTML=isDark?'&#9728;&#65039; ライトモード':'&#127769; ダークモード';
+  if(el){
+    const isDark=document.body.classList.contains('dark');
+    el.innerHTML=isDark?'&#9728;&#65039; ライトモード':'&#127769; ダークモード';
+  }
+  const btn=document.getElementById('darkModeBtn');
+  if(btn){
+    const isDark=document.body.classList.contains('dark');
+    btn.textContent=isDark?'☀️ ライトモード':'🌙 ダークモード';
+  }
 }
 function initDarkMode(){
   if(localStorage.getItem('fs-dark-mode')==='true'){
@@ -1337,61 +1453,11 @@ function initDarkMode(){
 
 // ===== Upcoming Tasks =====
 let upcomingDays=7;
-function renderUpcoming(){
-  const container=document.getElementById('upcomingContainer');
-  if(!container)return;
-  const today=new Date();
-  const todayStr=today.toISOString().split('T')[0];
-  const limit=new Date(today);limit.setDate(limit.getDate()+upcomingDays);
-  const limitStr=limit.toISOString().split('T')[0];
-
-  const upcoming=[];
-  tasks.forEach(t=>{
-    const done=isTaskDone(t.id);
-    if(done||t.paused)return;
-    let ds=t.start,de=t.end;
-    const sy=new Date(t.start).getFullYear(),ey=new Date(t.end).getFullYear();
-    if(t.recurring&&sy!==currentYear&&ey!==currentYear){
-      const s=new Date(t.start),e=new Date(t.end),diff=Math.round((e-s)/864e5);
-      ds=`${currentYear}-${String(s.getMonth()+1).padStart(2,'0')}-${String(s.getDate()).padStart(2,'0')}`;
-      const ne=new Date(currentYear,s.getMonth(),s.getDate()+diff);
-      de=`${ne.getFullYear()}-${String(ne.getMonth()+1).padStart(2,'0')}-${String(ne.getDate()).padStart(2,'0')}`;
-    }
-    if(de>=todayStr&&ds<=limitStr){
-      upcoming.push({...t,displayStart:ds,displayEnd:de,done:false});
-    }
-  });
-  upcoming.sort((a,b)=>a.displayStart.localeCompare(b.displayStart));
-
-  if(!upcoming.length){container.innerHTML='';return}
-
-  const items=upcoming.slice(0,10).map(t=>{
-    const cat=CATEGORIES[t.category]||CATEGORIES.other;
-    const mem=t.member?getMemberById(t.member):null;
-    const sD=new Date(t.displayStart);
-    const dateLabel=`${sD.getMonth()+1}/${sD.getDate()}`;
-    // Feature 8: Weather for outdoor tasks
-    const weatherHtml = getWeatherForTask(t);
-    return`<div class="upcoming-item" onclick="openTaskModal('${t.id}')">
-      <div class="upcoming-check" onclick="event.stopPropagation();toggleDone('${t.id}',event)"></div>
-      <div class="task-cat-dot" style="background:${cat.color}"></div>
-      <span class="upcoming-date">${dateLabel}</span>
-      <span class="upcoming-name">${escHtml(t.name)}</span>
-      ${weatherHtml}
-      ${mem?`<span class="task-member-badge" style="background:${mem.color}">${escHtml(mem.name)}</span>`:''}
-    </div>`;
-  }).join('');
-
-  container.innerHTML=`<div class="upcoming-section" style="margin:0 14px;margin-top:14px">
-    <div class="upcoming-header">
-      <h3>&#128197; 次にやること（${upcomingDays}日以内 ${upcoming.length}件）</h3>
-      <button class="upcoming-toggle" onclick="toggleUpcomingRange()">${upcomingDays===7?'30日表示':'7日表示'}</button>
-    </div>
-    <div class="upcoming-list">${items}</div>
-    ${upcoming.length>10?`<div style="text-align:center;font-size:0.65rem;color:var(--text-light);margin-top:4px">他 ${upcoming.length-10}件</div>`:''}
-  </div>`;
+function renderUpcoming() {
+  // Old function - now handled by renderUpcomingView in the view system
+  if (currentView === 'upcoming') renderUpcomingView();
 }
-function toggleUpcomingRange(){upcomingDays=upcomingDays===7?30:7;renderUpcoming()}
+function toggleUpcomingRange(){upcomingDays=upcomingDays===7?30:7;if(currentView==='upcoming')renderUpcomingView()}
 
 // ===== Feature 8: Weather Integration =====
 function getWeatherIcon(code) {
@@ -1485,15 +1551,12 @@ function renderMobileCards(){
 // ===================================================================
 // FEATURE 1: Cost Tracking
 // ===================================================================
-function openCostModal() {
-  const modal = document.getElementById('costModalOverlay');
-  renderCostContent();
-  modal.classList.add('active');
-}
-function closeCostModal() { document.getElementById('costModalOverlay').classList.remove('active'); }
+function openCostModal() { navigateTo('cost'); }
+function closeCostModal() { navigateTo('schedule'); }
 
-function renderCostContent() {
-  const container = document.getElementById('costContent');
+function renderCostContent(container) {
+  if (!container) container = document.getElementById('costViewContent');
+  if (!container) return;
   const vis = getVisibleTasks();
   const costTasks = vis.filter(t => t.cost > 0);
 
@@ -1550,14 +1613,12 @@ function renderCostContent() {
 // ===================================================================
 // FEATURE 2: Shopping List
 // ===================================================================
-function openShoppingModal() {
-  renderShoppingList();
-  document.getElementById('shoppingModalOverlay').classList.add('active');
-}
-function closeShoppingModal() { document.getElementById('shoppingModalOverlay').classList.remove('active'); }
+function openShoppingModal() { navigateTo('shopping'); }
+function closeShoppingModal() { navigateTo('schedule'); }
 
 function renderShoppingList() {
   const list = document.getElementById('shoppingListContent');
+  if (!list) return;
   const unchecked = shoppingList.filter(i => !i.checked);
   const checked = shoppingList.filter(i => i.checked);
 
@@ -1609,14 +1670,13 @@ function clearCheckedShopping() {
 // ===================================================================
 // FEATURE 3: Annual Report
 // ===================================================================
-function openReportModal() {
-  renderReport();
-  document.getElementById('reportModalOverlay').classList.add('active');
-}
-function closeReportModal() { document.getElementById('reportModalOverlay').classList.remove('active'); }
+function openReportModal() { navigateTo('report'); }
+function closeReportModal() { navigateTo('schedule'); }
 
-function renderReport() {
-  const container = document.getElementById('reportContent');
+function renderReport() { renderReportContent(); }
+function renderReportContent(container) {
+  if (!container) container = document.getElementById('reportViewContent');
+  if (!container) return;
   const vis = getVisibleTasks();
   const todayStr = new Date().toISOString().split('T')[0];
   let done=0, total=0, overdue=0;
@@ -1721,14 +1781,12 @@ function renderReport() {
 // ===================================================================
 // FEATURE 4: Appliance Management
 // ===================================================================
-function openApplianceModal() {
-  renderApplianceList();
-  document.getElementById('applianceModalOverlay').classList.add('active');
-}
-function closeApplianceModal() { document.getElementById('applianceModalOverlay').classList.remove('active'); }
+function openApplianceModal() { navigateTo('appliance'); }
+function closeApplianceModal() { navigateTo('schedule'); }
 
 function renderApplianceList() {
   const list = document.getElementById('applianceListContent');
+  if (!list) return;
   if (!appliances.length) {
     list.innerHTML = '<p style="font-size:0.75rem;color:var(--text-light);text-align:center;padding:20px">家電が登録されていません</p>';
     return;
@@ -1840,14 +1898,12 @@ function deleteAppliance(id) {
 // ===================================================================
 // FEATURE 6: Rewards System
 // ===================================================================
-function openRewardsModal() {
-  renderRewardsContent();
-  document.getElementById('rewardsModalOverlay').classList.add('active');
-}
-function closeRewardsModal() { document.getElementById('rewardsModalOverlay').classList.remove('active'); }
+function openRewardsModal() { navigateTo('rewards'); }
+function closeRewardsModal() { navigateTo('schedule'); }
 
-function renderRewardsContent() {
-  const container = document.getElementById('rewardsContent');
+function renderRewardsContent(container) {
+  if (!container) container = document.getElementById('rewardsViewContent');
+  if (!container) return;
 
   // Show member points
   let html = '<h3 style="font-size:0.85rem;margin-bottom:8px">メンバーポイント</h3>';
@@ -1946,14 +2002,12 @@ function redeemReward(id) {
 // ===================================================================
 // FEATURE 7: Stock Management
 // ===================================================================
-function openStockModal() {
-  renderStockList();
-  document.getElementById('stockModalOverlay').classList.add('active');
-}
-function closeStockModal() { document.getElementById('stockModalOverlay').classList.remove('active'); }
+function openStockModal() { navigateTo('stock'); }
+function closeStockModal() { navigateTo('schedule'); }
 
 function renderStockList() {
   const list = document.getElementById('stockListContent');
+  if (!list) return;
   if (!stockItems.length) {
     list.innerHTML = '<p style="font-size:0.75rem;color:var(--text-light);text-align:center;padding:20px">ストックが登録されていません</p>';
     return;
@@ -2071,6 +2125,155 @@ function addLowStockToShopping() {
   alert(`${added}件を買い物リストに追加しました`);
 }
 
+// ===== View Render Functions =====
+// These render content into page views instead of modals
+
+function renderUpcomingView() {
+  const container = document.getElementById('upcomingViewContent');
+  if (!container) return;
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const limit = new Date(today); limit.setDate(limit.getDate()+upcomingDays);
+  const limitStr = limit.toISOString().split('T')[0];
+
+  const upcoming = [];
+  tasks.forEach(t => {
+    const done = isTaskDone(t.id);
+    if (done || t.paused) return;
+    let ds=t.start, de=t.end;
+    const sy=new Date(t.start).getFullYear(), ey=new Date(t.end).getFullYear();
+    if (t.recurring && sy!==currentYear && ey!==currentYear) {
+      const s=new Date(t.start), e=new Date(t.end), diff=Math.round((e-s)/864e5);
+      ds=`${currentYear}-${String(s.getMonth()+1).padStart(2,'0')}-${String(s.getDate()).padStart(2,'0')}`;
+      const ne=new Date(currentYear,s.getMonth(),s.getDate()+diff);
+      de=`${ne.getFullYear()}-${String(ne.getMonth()+1).padStart(2,'0')}-${String(ne.getDate()).padStart(2,'0')}`;
+    }
+    if (de>=todayStr && ds<=limitStr) {
+      upcoming.push({...t, displayStart:ds, displayEnd:de, done:false});
+    }
+  });
+  upcoming.sort((a,b) => a.displayStart.localeCompare(b.displayStart));
+
+  const toggleBtn = document.getElementById('upcomingToggleBtn');
+  if (toggleBtn) toggleBtn.textContent = upcomingDays===7 ? '30日表示' : '7日表示';
+
+  if (!upcoming.length) {
+    container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text-light)">
+      <div style="font-size:2rem;margin-bottom:10px;opacity:0.4">📅</div>
+      <p style="font-size:0.9rem">${upcomingDays}日以内にやることはありません</p>
+      <p style="font-size:0.75rem;color:#aaa;margin-top:4px">タスクを追加するか、表示期間を変更してみてください</p>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = `<p style="font-size:0.8rem;color:var(--text-light);margin-bottom:12px;padding:0 24px">${upcomingDays}日以内: ${upcoming.length}件</p>
+    <div class="upcoming-list-full" style="padding:0 24px">${upcoming.map(t => {
+      const cat = CATEGORIES[t.category] || CATEGORIES.other;
+      const mem = t.member ? getMemberById(t.member) : null;
+      const sD = new Date(t.displayStart);
+      const eD = new Date(t.displayEnd);
+      const dateLabel = t.displayStart===t.displayEnd
+        ? `${sD.getMonth()+1}/${sD.getDate()}`
+        : `${sD.getMonth()+1}/${sD.getDate()} - ${eD.getMonth()+1}/${eD.getDate()}`;
+      const weatherHtml = getWeatherForTask(t);
+      const daysLeft = Math.ceil((new Date(t.displayStart) - new Date(todayStr)) / 864e5);
+      const urgency = daysLeft <= 0 ? '<span style="color:var(--today);font-weight:600;font-size:0.7rem">今日</span>'
+        : daysLeft <= 1 ? '<span style="color:#ff9800;font-weight:600;font-size:0.7rem">明日</span>'
+        : `<span style="font-size:0.7rem;color:var(--text-light)">${daysLeft}日後</span>`;
+      return `<div class="upcoming-item-full" onclick="openTaskModal('${t.id}')">
+        <div class="upcoming-check" onclick="event.stopPropagation();toggleDone('${t.id}',event)"></div>
+        <div class="task-cat-dot" style="background:${cat.color}"></div>
+        <span class="upcoming-date-full">${dateLabel}</span>
+        <span class="upcoming-name-full">${escHtml(t.name)}</span>
+        ${weatherHtml}
+        ${urgency}
+        ${mem ? `<span class="task-member-badge" style="background:${mem.color}">${escHtml(mem.name)}</span>` : ''}
+      </div>`;
+    }).join('')}</div>`;
+}
+
+function renderCostView() {
+  const container = document.getElementById('costViewContent');
+  if (!container) return;
+  renderCostContent(container);
+}
+
+function renderReportView() {
+  const container = document.getElementById('reportViewContent');
+  if (!container) return;
+  renderReportContent(container);
+}
+
+function renderRewardsView() {
+  const container = document.getElementById('rewardsViewContent');
+  if (!container) return;
+  renderRewardsContent(container);
+}
+
+function renderActivityView() {
+  const list = document.getElementById('activityViewList');
+  if (!list) return;
+  if (!activityLog.length) {
+    list.innerHTML = '<p style="font-size:0.85rem;color:var(--text-light);text-align:center;padding:30px">履歴はまだありません</p>';
+    return;
+  }
+  const icons = {task_created:'📝',task_updated:'✏️',task_deleted:'🗑️',task_completed:'✅',task_uncompleted:'↩️',member_added:'👤',member_removed:'👤'};
+  list.innerHTML = activityLog.slice(0,100).map(a =>
+    `<div class="activity-item">
+      <div class="activity-icon">${icons[a.action]||'📋'}</div>
+      <div class="activity-content">
+        <div class="activity-desc"><span class="activity-who">${escHtml(a.performedBy||'')}</span> ${escHtml(a.details||'')}</div>
+        <div class="activity-time">${relativeTime(a.timestamp)}</div>
+      </div>
+    </div>`
+  ).join('');
+}
+
+function renderMemberView() {
+  const list = document.getElementById('memberViewList');
+  if (!list) return;
+  list.innerHTML = members.length === 0
+    ? '<p style="font-size:0.8rem;color:var(--text-light);padding:10px 0">まだメンバーがいません</p>'
+    : members.map(m => `<div class="member-item">
+        <div class="member-color" style="background:${m.color}"></div>
+        <span class="member-name-display">${escHtml(m.name)}</span>
+        ${m.id===currentUserId ? '<span style="color:var(--accent);font-size:0.7rem;font-weight:600">選択中</span>' : ''}
+        <button class="member-remove" onclick="removeMember('${m.id}')">✕</button>
+      </div>`).join('');
+}
+
+function renderSettingsView() {
+  // Settings content is mostly static HTML; just update dynamic parts
+  const config = localStorage.getItem('fs-firebase-config');
+  const input = document.getElementById('fbConfigInput');
+  if (config && input) input.value = config;
+
+  const st = document.getElementById('fbStatus');
+  if (st) {
+    if (fbMode) { st.className='settings-status on'; st.textContent='接続中'; }
+    else if (config) { st.className='settings-status off'; st.textContent='未接続'; }
+    else { st.className='settings-status off'; st.textContent='未設定'; }
+  }
+
+  // Weather settings
+  const latEl = document.getElementById('weatherLat');
+  const lonEl = document.getElementById('weatherLon');
+  if (latEl) latEl.value = weatherSettings.lat;
+  if (lonEl) lonEl.value = weatherSettings.lon;
+
+  renderRoomInfo();
+
+  const btnReminder = document.getElementById('btnReminder');
+  if (btnReminder) btnReminder.textContent = reminderEnabled ? '通知をオフにする' : '通知をオンにする';
+
+  // Dark mode button
+  const darkBtn = document.getElementById('darkModeBtn');
+  if (darkBtn) {
+    const isDark = document.body.classList.contains('dark');
+    darkBtn.textContent = isDark ? '☀️ ライトモード' : '🌙 ダークモード';
+  }
+}
+
 // ===== PWA Registration =====
 function registerSW(){
   if('serviceWorker' in navigator){
@@ -2081,10 +2284,8 @@ function registerSW(){
 // ===== Keyboard =====
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
-    closeTaskModal();closeMemberModal();closeTemplateModal();closeActivityModal();
-    closeDataModal();closeSettingsModal();closeMonthZoom();closeUserSelect();
-    closeMenuDropdown();closeCostModal();closeShoppingModal();closeReportModal();
-    closeApplianceModal();closeRewardsModal();closeStockModal();
+    closeTaskModal();closeTemplateModal();closeMonthZoom();closeUserSelect();
+    closeSidebar();
   }
 });
 
@@ -2098,6 +2299,9 @@ document.addEventListener('keydown',e=>{
   updateUserBadge();
   registerSW();
   fetchWeather();
+
+  // Initialize the view router
+  initRouter();
 
   // Try Firebase reconnect
   const savedConfig=localStorage.getItem('fs-firebase-config');

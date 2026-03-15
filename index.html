@@ -12,100 +12,427 @@
 </head>
 <body>
 
-<header>
-  <div class="header-left">
-    <h1>家族の年間スケジュール</h1>
-    <span class="sync-dot" id="syncDot" title="ローカルモード"></span>
-    <div class="current-user-badge" id="currentUserBadge" onclick="openUserSelect()">
+<!-- ===== Sidebar ===== -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">🗓️</div>
+    <div class="sidebar-title">家族スケジュール</div>
+  </div>
+  <nav class="sidebar-nav" id="sidebarNav">
+    <a class="nav-item active" data-view="schedule" onclick="navigateTo('schedule')">
+      <span class="nav-icon">📋</span><span class="nav-label">年間スケジュール</span>
+    </a>
+    <a class="nav-item" data-view="upcoming" onclick="navigateTo('upcoming')">
+      <span class="nav-icon">📅</span><span class="nav-label">次にやること</span>
+    </a>
+    <a class="nav-item" data-view="cost" onclick="navigateTo('cost')">
+      <span class="nav-icon">💰</span><span class="nav-label">コスト管理</span>
+    </a>
+    <a class="nav-item" data-view="shopping" onclick="navigateTo('shopping')">
+      <span class="nav-icon">🛒</span><span class="nav-label">買い物リスト</span>
+    </a>
+    <a class="nav-item" data-view="report" onclick="navigateTo('report')">
+      <span class="nav-icon">📊</span><span class="nav-label">レポート</span>
+    </a>
+    <a class="nav-item" data-view="appliance" onclick="navigateTo('appliance')">
+      <span class="nav-icon">🏠</span><span class="nav-label">家電管理</span>
+    </a>
+    <a class="nav-item" data-view="rewards" onclick="navigateTo('rewards')">
+      <span class="nav-icon">🎁</span><span class="nav-label">ポイント</span>
+    </a>
+    <a class="nav-item" data-view="stock" onclick="navigateTo('stock')">
+      <span class="nav-icon">📦</span><span class="nav-label">ストック管理</span>
+    </a>
+    <a class="nav-item" data-view="activity" onclick="navigateTo('activity')">
+      <span class="nav-icon">📝</span><span class="nav-label">履歴</span>
+    </a>
+    <a class="nav-item" data-view="members" onclick="navigateTo('members')">
+      <span class="nav-icon">👨‍👩‍👧</span><span class="nav-label">家族</span>
+    </a>
+    <a class="nav-item" data-view="settings" onclick="navigateTo('settings')">
+      <span class="nav-icon">⚙️</span><span class="nav-label">設定</span>
+    </a>
+  </nav>
+  <div class="sidebar-mascot" id="sidebarMascot">
+    <div class="sidebar-mascot-character">
+      <div class="mascot mini">
+        <div class="mascot-eyes"><div class="mascot-eye"></div><div class="mascot-eye"></div></div>
+        <div class="mascot-cheeks"><div class="mascot-cheek"></div><div class="mascot-cheek"></div></div>
+        <div class="mascot-mouth"></div>
+      </div>
+    </div>
+    <div class="sidebar-mascot-info">
+      <div class="hearts-row" id="heartsRow"></div>
+      <div class="mascot-message-mini" id="mascotMessageMini">スケちゃん</div>
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="sidebar-sync">
+      <span class="sync-dot" id="syncDot" title="ローカルモード"></span>
+      <span class="sync-label" id="syncLabel">ローカル</span>
+    </div>
+    <div class="sidebar-user" id="currentUserBadge" onclick="openUserSelect()">
       <span class="badge-dot" id="badgeDot"></span>
-      <span id="badgeName"></span>
+      <span id="badgeName">ゲスト</span>
     </div>
   </div>
-  <div class="header-controls">
-    <button class="hdr-btn" onclick="goToday()">今日</button>
-    <div class="year-nav">
-      <button onclick="changeYear(-1)">&lt;</button>
-      <span id="currentYear">2026</span>
-      <button onclick="changeYear(1)">&gt;</button>
+</aside>
+
+<!-- ===== Sidebar Overlay (mobile) ===== -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- ===== Main Content Area ===== -->
+<div class="main-wrapper">
+  <!-- Top Bar -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()">☰</button>
+      <h1 class="page-title" id="pageTitle">年間スケジュール</h1>
     </div>
-    <div class="menu-dropdown-wrapper">
-      <button class="hdr-btn" id="menuBtn" onclick="toggleMenuDropdown(event)">&#9776; メニュー</button>
-      <div class="menu-dropdown" id="menuDropdown">
-        <button onclick="openMemberModal();closeMenuDropdown()">&#128106; 家族</button>
-        <button onclick="openTemplateModal();closeMenuDropdown()">&#128203; テンプレ</button>
-        <button onclick="openActivityModal();closeMenuDropdown()">&#128338; 履歴</button>
-        <button onclick="openShoppingModal();closeMenuDropdown()">&#128722; 買い物リスト</button>
-        <button onclick="openStockModal();closeMenuDropdown()">&#128230; ストック管理</button>
-        <button onclick="openApplianceModal();closeMenuDropdown()">&#127968; 家電管理</button>
-        <button onclick="openCostModal();closeMenuDropdown()">&#128176; コスト</button>
-        <button onclick="openReportModal();closeMenuDropdown()">&#128202; レポート</button>
-        <button onclick="openRewardsModal();closeMenuDropdown()">&#127873; ポイント&ごほうび</button>
-        <button onclick="openDataModal();closeMenuDropdown()">&#128190; データ</button>
-        <button onclick="openSettingsModal();closeMenuDropdown()">&#9881;&#65039; 設定</button>
-        <button onclick="toggleDarkMode();closeMenuDropdown()" id="darkModeMenuItem">&#127769; ダークモード</button>
+    <div class="topbar-right">
+      <!-- Schedule-specific controls (shown only on schedule page) -->
+      <div class="schedule-controls" id="scheduleControls">
+        <button class="hdr-btn" onclick="goToday()">今日</button>
+        <div class="year-nav">
+          <button onclick="changeYear(-1)">&lt;</button>
+          <span id="currentYear">2026</span>
+          <button onclick="changeYear(1)">&gt;</button>
+        </div>
+      </div>
+      <button class="hdr-btn primary add-btn" id="globalAddBtn" onclick="openTaskModal()">+ 追加</button>
+    </div>
+  </header>
+
+  <!-- ===== Page Views ===== -->
+
+  <!-- Schedule View (default) -->
+  <div class="view active" id="view-schedule">
+    <div class="mascot-area" id="mascotArea">
+      <button class="mascot-toggle" id="mascotToggle" onclick="toggleMascotCollapse()">&#9660;</button>
+      <div class="mascot-scene">
+        <div class="mascot-decorations">
+          <span class="deco-flower" id="deco1">🌷</span>
+          <span class="deco-flower" id="deco2">🌻</span>
+          <span class="deco-flower" id="deco3">🌸</span>
+        </div>
+        <div class="mascot full">
+          <div class="mascot-eyes"><div class="mascot-eye"></div><div class="mascot-eye"></div></div>
+          <div class="mascot-cheeks"><div class="mascot-cheek"></div><div class="mascot-cheek"></div></div>
+          <div class="mascot-mouth"></div>
+        </div>
+        <div class="mascot-grass"><div class="grass-blade"></div><div class="grass-blade"></div><div class="grass-blade"></div><div class="grass-blade"></div><div class="grass-blade"></div><div class="grass-blade"></div><div class="grass-blade"></div><div class="grass-blade"></div></div>
+        <div class="mascot-ground"></div>
+      </div>
+      <div class="mascot-info">
+        <div class="mascot-message" id="mascotMessage">スケちゃんが待ってるよ！</div>
+        <div class="mascot-sub" id="mascotSub">タスクを追加してみよう</div>
+        <div class="mascot-stats">
+          <div class="mascot-stat">完了 <span class="stat-num" id="statDone">0</span></div>
+          <div class="mascot-stat">残り <span class="stat-num" id="statRemain">0</span></div>
+          <div class="mascot-stat">期限切れ <span class="stat-num" id="statOverdue">0</span></div>
+        </div>
+        <div class="points-display" id="pointsDisplay"></div>
       </div>
     </div>
-    <button class="hdr-btn primary" onclick="openTaskModal()">+ 追加</button>
-  </div>
-</header>
 
-<div class="mascot-area" id="mascotArea">
-  <button class="mascot-toggle" id="mascotToggle" onclick="toggleMascotCollapse()">&#9660;</button>
-  <div class="mascot-scene">
-    <div class="mascot-decorations">
-      <span class="deco-flower" id="deco1">🌷</span>
-      <span class="deco-flower" id="deco2">🌻</span>
-      <span class="deco-flower" id="deco3">🌸</span>
-    </div>
-    <div class="mascot">
-      <div class="mascot-eyes"><div class="mascot-eye"></div><div class="mascot-eye"></div></div>
-      <div class="mascot-cheeks"><div class="mascot-cheek"></div><div class="mascot-cheek"></div></div>
-      <div class="mascot-mouth"></div>
-    </div>
-    <div class="mascot-grass"><div class="grass-blade"></div><div class="grass-blade"></div><div class="grass-blade"></div><div class="grass-blade"></div><div class="grass-blade"></div><div class="grass-blade"></div><div class="grass-blade"></div><div class="grass-blade"></div></div>
-    <div class="mascot-ground"></div>
-  </div>
-  <div class="mascot-info">
-    <div class="mascot-message" id="mascotMessage">スケちゃんが待ってるよ！</div>
-    <div class="mascot-sub" id="mascotSub">タスクを追加してみよう</div>
-    <div class="hearts-row" id="heartsRow"></div>
-    <div class="mascot-stats">
-      <div class="mascot-stat">完了 <span class="stat-num" id="statDone">0</span></div>
-      <div class="mascot-stat">残り <span class="stat-num" id="statRemain">0</span></div>
-      <div class="mascot-stat">期限切れ <span class="stat-num" id="statOverdue">0</span></div>
-    </div>
-    <div class="points-display" id="pointsDisplay"></div>
-  </div>
-</div>
-
-<div id="upcomingContainer"></div>
-
-<div class="main-container">
-  <div id="mobileCardView" class="mobile-card-view"></div>
-  <div class="gantt-wrapper">
-    <div class="gantt-header">
-      <div class="gantt-header-label">
-        タスク
-        <select id="filterCategory" onchange="render()"><option value="all">すべて</option></select>
-        <select id="filterMember" onchange="render()"><option value="all">全員</option></select>
+    <div class="main-container">
+      <div id="mobileCardView" class="mobile-card-view"></div>
+      <div class="gantt-wrapper">
+        <div class="gantt-header">
+          <div class="gantt-header-label">
+            タスク
+            <select id="filterCategory" onchange="render()"><option value="all">すべて</option></select>
+            <select id="filterMember" onchange="render()"><option value="all">全員</option></select>
+          </div>
+          <div class="months-header" id="monthsHeader"></div>
+        </div>
+        <div class="filter-bar">
+          <span>並び替え:</span>
+          <button class="sort-btn active" data-sort="date" onclick="setSort('date')">日付順</button>
+          <button class="sort-btn" data-sort="category" onclick="setSort('category')">カテゴリ順</button>
+          <button class="sort-btn" data-sort="member" onclick="setSort('member')">担当順</button>
+          <input type="text" class="filter-search" id="filterSearch" placeholder="検索..." oninput="render()">
+          <span class="task-count" id="taskCount"></span>
+        </div>
+        <div class="gantt-body-wrapper" id="ganttBodyWrapper">
+          <div class="gantt-body" id="ganttBody"></div>
+        </div>
+        <div class="legend" id="legend"></div>
       </div>
-      <div class="months-header" id="monthsHeader"></div>
+      <div class="month-zoom" id="monthZoom"></div>
     </div>
-    <div class="filter-bar">
-      <span>並び替え:</span>
-      <button class="sort-btn active" data-sort="date" onclick="setSort('date')">日付順</button>
-      <button class="sort-btn" data-sort="category" onclick="setSort('category')">カテゴリ順</button>
-      <button class="sort-btn" data-sort="member" onclick="setSort('member')">担当順</button>
-      <input type="text" class="filter-search" id="filterSearch" placeholder="検索..." oninput="render()">
-      <span class="task-count" id="taskCount"></span>
-    </div>
-    <div class="gantt-body-wrapper" id="ganttBodyWrapper">
-      <div class="gantt-body" id="ganttBody"></div>
-    </div>
-    <div class="legend" id="legend"></div>
   </div>
-  <div class="month-zoom" id="monthZoom"></div>
-</div>
+
+  <!-- Upcoming Tasks View -->
+  <div class="view" id="view-upcoming">
+    <div class="view-header">
+      <h2>📅 次にやること</h2>
+      <div class="view-header-actions">
+        <button class="upcoming-toggle" onclick="toggleUpcomingRange()" id="upcomingToggleBtn">30日表示</button>
+      </div>
+    </div>
+    <div class="view-body" id="upcomingViewContent"></div>
+  </div>
+
+  <!-- Cost View -->
+  <div class="view" id="view-cost">
+    <div class="view-header">
+      <h2>💰 コスト管理</h2>
+    </div>
+    <div class="view-body" id="costViewContent"></div>
+  </div>
+
+  <!-- Shopping List View -->
+  <div class="view" id="view-shopping">
+    <div class="view-header">
+      <h2>🛒 買い物リスト</h2>
+      <div class="view-header-actions">
+        <button class="btn btn-secondary" onclick="clearCheckedShopping()">完了を消去</button>
+      </div>
+    </div>
+    <div class="view-body">
+      <div class="shopping-add-row page-add-row">
+        <input type="text" id="shoppingNewItem" placeholder="アイテムを追加..." onkeydown="if(event.key==='Enter'){event.preventDefault();addShoppingItem()}">
+        <button class="btn btn-primary" onclick="addShoppingItem()">追加</button>
+      </div>
+      <div id="shoppingListContent"></div>
+    </div>
+  </div>
+
+  <!-- Report View -->
+  <div class="view" id="view-report">
+    <div class="view-header">
+      <h2>📊 年間レポート</h2>
+    </div>
+    <div class="view-body" id="reportViewContent"></div>
+  </div>
+
+  <!-- Appliance View -->
+  <div class="view" id="view-appliance">
+    <div class="view-header">
+      <h2>🏠 家電・設備管理</h2>
+      <div class="view-header-actions">
+        <button class="btn btn-primary" onclick="showApplianceForm()">+ 家電を登録</button>
+      </div>
+    </div>
+    <div class="view-body">
+      <div id="applianceForm" style="display:none" class="inline-form">
+        <h3 id="applianceFormTitle">家電登録</h3>
+        <div class="form-group"><label>名前</label><input type="text" id="appName" required placeholder="例: リビングエアコン"></div>
+        <div class="form-row">
+          <div class="form-group"><label>カテゴリ</label><select id="appCategory">
+            <option value="エアコン">エアコン</option><option value="洗濯機">洗濯機</option>
+            <option value="冷蔵庫">冷蔵庫</option><option value="給湯器">給湯器</option>
+            <option value="食洗機">食洗機</option><option value="テレビ">テレビ</option>
+            <option value="電子レンジ">電子レンジ</option><option value="掃除機">掃除機</option>
+            <option value="乾燥機">乾燥機</option><option value="その他">その他</option>
+          </select></div>
+          <div class="form-group"><label>設置場所</label><input type="text" id="appLocation" placeholder="例: リビング"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>購入日</label><input type="date" id="appPurchaseDate"></div>
+          <div class="form-group"><label>保証期限</label><input type="date" id="appWarrantyEnd"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>メンテ周期（月）</label><input type="number" id="appMaintenanceCycle" min="0" placeholder="例: 6"></div>
+          <div class="form-group"><label>メモ</label><input type="text" id="appMemo" placeholder="型番など"></div>
+        </div>
+        <div class="inline-form-actions">
+          <button class="btn btn-secondary" onclick="hideApplianceForm()">キャンセル</button>
+          <button class="btn btn-primary" onclick="saveAppliance()">保存</button>
+        </div>
+      </div>
+      <div id="applianceListContent"></div>
+    </div>
+  </div>
+
+  <!-- Rewards View -->
+  <div class="view" id="view-rewards">
+    <div class="view-header">
+      <h2>🎁 ポイント & ごほうび</h2>
+    </div>
+    <div class="view-body">
+      <div class="rewards-intro">
+        <p>タスク完了でポイント獲得！期限前なら1.5倍、遅れると0.5倍</p>
+        <div class="shopping-add-row page-add-row">
+          <input type="text" id="rewardNewName" placeholder="ごほうび名（例: 外食）">
+          <input type="number" id="rewardNewCost" placeholder="pt" style="width:80px" min="1">
+          <button class="btn btn-primary" onclick="addReward()">追加</button>
+        </div>
+      </div>
+      <div id="rewardsViewContent"></div>
+    </div>
+  </div>
+
+  <!-- Stock View -->
+  <div class="view" id="view-stock">
+    <div class="view-header">
+      <h2>📦 ストック管理</h2>
+      <div class="view-header-actions">
+        <button class="btn btn-primary" onclick="showStockForm()">+ ストック登録</button>
+        <button class="btn btn-secondary" onclick="addLowStockToShopping()">🛒 不足分を買い物リストへ</button>
+      </div>
+    </div>
+    <div class="view-body">
+      <div id="stockForm" style="display:none" class="inline-form">
+        <h3 id="stockFormTitle">ストック登録</h3>
+        <div class="form-group"><label>名前</label><input type="text" id="stockName" required placeholder="例: トイレットペーパー"></div>
+        <div class="form-row">
+          <div class="form-group"><label>カテゴリ</label><input type="text" id="stockCategory" placeholder="例: 日用品"></div>
+          <div class="form-group"><label>単位</label><select id="stockUnit">
+            <option value="個">個</option><option value="本">本</option><option value="箱">箱</option>
+            <option value="袋">袋</option><option value="パック">パック</option><option value="枚">枚</option>
+            <option value="セット">セット</option><option value="kg">kg</option><option value="L">L</option>
+          </select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>現在の在庫</label><input type="number" id="stockCurrent" min="0" value="0"></div>
+          <div class="form-group"><label>最低在庫</label><input type="number" id="stockMin" min="0" value="1"></div>
+        </div>
+        <div class="form-group"><label>最終購入日</label><input type="date" id="stockLastPurchase"></div>
+        <div class="inline-form-actions">
+          <button class="btn btn-secondary" onclick="hideStockForm()">キャンセル</button>
+          <button class="btn btn-primary" onclick="saveStockItem()">保存</button>
+        </div>
+      </div>
+      <div id="stockListContent"></div>
+    </div>
+  </div>
+
+  <!-- Activity Log View -->
+  <div class="view" id="view-activity">
+    <div class="view-header">
+      <h2>📝 変更履歴</h2>
+    </div>
+    <div class="view-body">
+      <div class="activity-list" id="activityViewList">
+        <p style="font-size:0.85rem;color:var(--text-light);text-align:center;padding:30px">履歴はまだありません</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Members View -->
+  <div class="view" id="view-members">
+    <div class="view-header">
+      <h2>👨‍👩‍👧 家族メンバー管理</h2>
+    </div>
+    <div class="view-body">
+      <div class="member-list" id="memberViewList"></div>
+      <div class="add-member-row page-add-row" style="margin-top:16px">
+        <input type="text" id="newMemberName" placeholder="名前を入力...">
+        <input type="color" id="newMemberColor" value="#5b9bd5">
+        <button class="btn btn-primary" onclick="addMember()">追加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings View -->
+  <div class="view" id="view-settings">
+    <div class="view-header">
+      <h2>⚙️ 設定</h2>
+    </div>
+    <div class="view-body settings-body">
+      <div class="settings-section">
+        <h3>Firebase接続
+          <span class="settings-status" id="fbStatus"></span>
+        </h3>
+        <p>家族間でデータをリアルタイム同期するには、Firebaseプロジェクトが必要です。</p>
+        <details style="margin-bottom:8px">
+          <summary style="font-size:0.75rem;cursor:pointer;color:var(--accent);font-weight:600">セットアップ手順</summary>
+          <ol class="steps-list">
+            <li><a href="https://console.firebase.google.com/" target="_blank">Firebase Console</a> にアクセス</li>
+            <li>「プロジェクトを追加」で新規プロジェクト作成</li>
+            <li>左メニュー「Firestore Database」→「データベースを作成」→テストモードで開始</li>
+            <li>プロジェクト設定 → 「ウェブアプリを追加」</li>
+            <li>表示される firebaseConfig の中身（{ apiKey: ... }）をコピー</li>
+            <li>下のテキストエリアに貼り付けて「保存」を押す</li>
+          </ol>
+        </details>
+        <div class="form-group">
+          <label>Firebase Config (JSON)</label>
+          <textarea id="fbConfigInput" style="min-height:80px;font-family:monospace;font-size:0.75rem" placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "...", ... }'></textarea>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="saveFirebaseConfig()">保存して接続</button>
+          <button class="btn btn-secondary" onclick="clearFirebaseConfig()">設定をクリア</button>
+        </div>
+      </div>
+
+      <div class="settings-section" id="roomSection" style="display:none">
+        <h3>家族ルーム</h3>
+        <div id="roomInfo"></div>
+      </div>
+
+      <div class="settings-section" id="userSelectSection" style="display:none">
+        <h3>あなたはだれ？</h3>
+        <p>変更履歴に名前が記録されます</p>
+        <div id="userSelectList"></div>
+      </div>
+
+      <div class="settings-section">
+        <h3>通知</h3>
+        <p>タスクの当日/翌日にブラウザ通知を送ります</p>
+        <button class="btn btn-secondary" onclick="toggleReminders()" id="btnReminder">通知をオンにする</button>
+      </div>
+
+      <div class="settings-section">
+        <h3>🌤️ 天気設定</h3>
+        <p>次にやることに天気情報を表示します（屋外タスク向け）</p>
+        <div class="form-row">
+          <div class="form-group"><label>緯度</label><input type="number" id="weatherLat" step="0.0001" value="35.6762"></div>
+          <div class="form-group"><label>経度</label><input type="number" id="weatherLon" step="0.0001" value="139.6503"></div>
+        </div>
+        <p style="font-size:0.65rem;color:#aaa">東京: 35.6762, 139.6503 / 大阪: 34.6937, 135.5023 / 名古屋: 35.1815, 136.9066</p>
+        <button class="btn btn-secondary" onclick="saveWeatherSettings()">天気設定を保存</button>
+      </div>
+
+      <div class="settings-section">
+        <h3>データ管理</h3>
+        <div class="data-section">
+          <h4>エクスポート</h4>
+          <p>全データをJSONファイルとしてダウンロード</p>
+          <button class="btn btn-primary" onclick="exportData()">ダウンロード</button>
+        </div>
+        <div class="data-section" style="margin-top:16px">
+          <h4>インポート</h4>
+          <p>JSONファイルからデータを復元（現在のデータは上書き）</p>
+          <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">クリックまたはドロップでファイルを選択</div>
+          <input type="file" id="fileInput" accept=".json" style="display:none" onchange="importData(event)">
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>表示</h3>
+        <button class="btn btn-secondary" onclick="toggleDarkMode()" id="darkModeBtn">🌙 ダークモード</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-wrapper -->
+
+<!-- ===== Mobile Bottom Tab Bar ===== -->
+<nav class="mobile-tab-bar" id="mobileTabBar">
+  <a class="tab-item active" data-view="schedule" onclick="navigateTo('schedule')">
+    <span class="tab-icon">📋</span><span class="tab-label">スケジュール</span>
+  </a>
+  <a class="tab-item" data-view="upcoming" onclick="navigateTo('upcoming')">
+    <span class="tab-icon">📅</span><span class="tab-label">次にやる</span>
+  </a>
+  <a class="tab-item" data-view="shopping" onclick="navigateTo('shopping')">
+    <span class="tab-icon">🛒</span><span class="tab-label">買い物</span>
+  </a>
+  <a class="tab-item tab-add" onclick="openTaskModal()">
+    <span class="tab-icon-add">+</span>
+  </a>
+  <a class="tab-item" data-view="stock" onclick="navigateTo('stock')">
+    <span class="tab-icon">📦</span><span class="tab-label">ストック</span>
+  </a>
+</nav>
+
+<!-- ===== Mobile FAB (Floating Action Button) ===== -->
+<!-- Removed in favor of tab bar add button -->
+
+<!-- ===== MODALS (actions only, not page views) ===== -->
 
 <!-- Task Modal -->
 <div class="modal-overlay" id="taskModalOverlay" onclick="if(event.target===this)closeTaskModal()">
@@ -154,118 +481,13 @@
   </div>
 </div>
 
-<!-- Member Modal -->
-<div class="modal-overlay" id="memberModalOverlay" onclick="if(event.target===this)closeMemberModal()">
-  <div class="modal">
-    <h2>家族メンバー管理</h2>
-    <div class="member-list" id="memberList"></div>
-    <div class="add-member-row">
-      <input type="text" id="newMemberName" placeholder="名前を入力...">
-      <input type="color" id="newMemberColor" value="#5b9bd5">
-      <button class="btn btn-primary" onclick="addMember()" style="padding:7px 12px">追加</button>
-    </div>
-    <div class="modal-actions" style="margin-top:12px"><button class="btn btn-secondary" onclick="closeMemberModal()">閉じる</button></div>
-  </div>
-</div>
-
 <!-- Template Modal -->
 <div class="modal-overlay" id="templateModalOverlay" onclick="if(event.target===this)closeTemplateModal()">
   <div class="modal" style="max-width:520px">
     <h2>季節タスクテンプレート</h2>
-    <p style="font-size:0.7rem;color:var(--text-light);margin-bottom:10px">よくある年間タスクをワンタップで追加</p>
+    <p style="font-size:0.75rem;color:var(--text-light);margin-bottom:10px">よくある年間タスクをワンタップで追加</p>
     <div class="template-list" id="templateList"></div>
     <div class="modal-actions"><button class="btn btn-secondary" onclick="closeTemplateModal()">閉じる</button></div>
-  </div>
-</div>
-
-<!-- Activity Log Modal -->
-<div class="modal-overlay" id="activityModalOverlay" onclick="if(event.target===this)closeActivityModal()">
-  <div class="modal" style="max-width:520px">
-    <h2>変更履歴</h2>
-    <div class="activity-list" id="activityList">
-      <p style="font-size:0.8rem;color:var(--text-light);text-align:center;padding:20px">履歴はまだありません</p>
-    </div>
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeActivityModal()">閉じる</button></div>
-  </div>
-</div>
-
-<!-- Data Modal -->
-<div class="modal-overlay" id="dataModalOverlay" onclick="if(event.target===this)closeDataModal()">
-  <div class="modal">
-    <h2>データ管理</h2>
-    <div class="data-section">
-      <h3>エクスポート</h3><p>全データをJSONファイルとしてダウンロード</p>
-      <button class="btn btn-primary" onclick="exportData()">ダウンロード</button>
-    </div>
-    <div class="data-section">
-      <h3>インポート</h3><p>JSONファイルからデータを復元（現在のデータは上書き）</p>
-      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">クリックまたはドロップでファイルを選択</div>
-      <input type="file" id="fileInput" accept=".json" style="display:none" onchange="importData(event)">
-    </div>
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeDataModal()">閉じる</button></div>
-  </div>
-</div>
-
-<!-- Settings Modal -->
-<div class="modal-overlay" id="settingsModalOverlay" onclick="if(event.target===this)closeSettingsModal()">
-  <div class="modal" style="max-width:520px">
-    <h2>設定</h2>
-
-    <div class="settings-section">
-      <h3>Firebase接続
-        <span class="settings-status" id="fbStatus"></span>
-      </h3>
-      <p>家族間でデータをリアルタイム同期するには、Firebaseプロジェクトが必要です。</p>
-      <details style="margin-bottom:8px">
-        <summary style="font-size:0.7rem;cursor:pointer;color:var(--accent);font-weight:600">セットアップ手順</summary>
-        <ol class="steps-list">
-          <li><a href="https://console.firebase.google.com/" target="_blank">Firebase Console</a> にアクセス</li>
-          <li>「プロジェクトを追加」で新規プロジェクト作成</li>
-          <li>左メニュー「Firestore Database」→「データベースを作成」→テストモードで開始</li>
-          <li>プロジェクト設定 → 「ウェブアプリを追加」</li>
-          <li>表示される firebaseConfig の中身（{ apiKey: ... }）をコピー</li>
-          <li>下のテキストエリアに貼り付けて「保存」を押す</li>
-        </ol>
-      </details>
-      <div class="form-group">
-        <label>Firebase Config (JSON)</label>
-        <textarea id="fbConfigInput" style="min-height:80px;font-family:monospace;font-size:0.7rem" placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "...", ... }'></textarea>
-      </div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-primary" onclick="saveFirebaseConfig()">保存して接続</button>
-        <button class="btn btn-secondary" onclick="clearFirebaseConfig()">設定をクリア</button>
-      </div>
-    </div>
-
-    <div class="settings-section" id="roomSection" style="display:none">
-      <h3>家族ルーム</h3>
-      <div id="roomInfo"></div>
-    </div>
-
-    <div class="settings-section" id="userSelectSection" style="display:none">
-      <h3>あなたはだれ？</h3>
-      <p>変更履歴に名前が記録されます</p>
-      <div id="userSelectList"></div>
-    </div>
-
-    <div class="settings-section">
-      <h3>通知</h3>
-      <p>タスクの当日/翌日にブラウザ通知を送ります</p>
-      <button class="btn btn-secondary" onclick="toggleReminders()" id="btnReminder">通知をオンにする</button>
-    </div>
-
-    <div class="settings-section">
-      <h3>🌤️ 天気設定</h3>
-      <p>次にやることに天気情報を表示します（屋外タスク向け）</p>
-      <div class="form-row">
-        <div class="form-group"><label>緯度</label><input type="number" id="weatherLat" step="0.0001" value="35.6762"></div>
-        <div class="form-group"><label>経度</label><input type="number" id="weatherLon" step="0.0001" value="139.6503"></div>
-      </div>
-      <p style="font-size:0.6rem;color:#aaa">東京: 35.6762, 139.6503 / 大阪: 34.6937, 135.5023 / 名古屋: 35.1815, 136.9066</p>
-      <button class="btn btn-secondary" onclick="saveWeatherSettings()">天気設定を保存</button>
-    </div>
-
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeSettingsModal()">閉じる</button></div>
   </div>
 </div>
 
@@ -284,28 +506,28 @@
     <h2>はじめまして！セットアップしましょう</h2>
     <div class="wizard-progress" id="wizardProgress"></div>
     <div class="wizard-step active" data-step="0">
-      <p style="font-size:0.8rem;margin-bottom:10px">お住まいのタイプは？</p>
+      <p style="font-size:0.85rem;margin-bottom:10px">お住まいのタイプは？</p>
       <div class="wizard-options">
         <div class="wizard-opt" data-key="home" data-val="house" onclick="wizardSelect(this)"><span class="opt-icon">🏠</span>一戸建て</div>
         <div class="wizard-opt" data-key="home" data-val="apartment" onclick="wizardSelect(this)"><span class="opt-icon">🏢</span>マンション</div>
       </div>
     </div>
     <div class="wizard-step" data-step="1">
-      <p style="font-size:0.8rem;margin-bottom:10px">庭やベランダはありますか？</p>
+      <p style="font-size:0.85rem;margin-bottom:10px">庭やベランダはありますか？</p>
       <div class="wizard-options">
         <div class="wizard-opt" data-key="garden" data-val="yes" onclick="wizardSelect(this)"><span class="opt-icon">🌿</span>ある</div>
         <div class="wizard-opt" data-key="garden" data-val="no" onclick="wizardSelect(this)"><span class="opt-icon">🚫</span>ない</div>
       </div>
     </div>
     <div class="wizard-step" data-step="2">
-      <p style="font-size:0.8rem;margin-bottom:10px">ペットはいますか？</p>
+      <p style="font-size:0.85rem;margin-bottom:10px">ペットはいますか？</p>
       <div class="wizard-options">
         <div class="wizard-opt" data-key="pet" data-val="yes" onclick="wizardSelect(this)"><span class="opt-icon">🐾</span>いる</div>
         <div class="wizard-opt" data-key="pet" data-val="no" onclick="wizardSelect(this)"><span class="opt-icon">🚫</span>いない</div>
       </div>
     </div>
     <div class="wizard-step" data-step="3">
-      <p style="font-size:0.8rem;margin-bottom:10px">家族メンバーを登録しましょう</p>
+      <p style="font-size:0.85rem;margin-bottom:10px">家族メンバーを登録しましょう</p>
       <div id="wizardMembers">
         <div class="add-member-row" style="margin-bottom:6px"><input type="text" placeholder="例: パパ" class="wiz-member-input"><input type="color" value="#5b9bd5" class="wiz-member-color"></div>
         <div class="add-member-row" style="margin-bottom:6px"><input type="text" placeholder="例: ママ" class="wiz-member-input"><input type="color" value="#e67e22" class="wiz-member-color"></div>
@@ -313,135 +535,14 @@
       </div>
     </div>
     <div class="wizard-step" data-step="4">
-      <p style="font-size:0.8rem;margin-bottom:6px">おすすめのタスクを追加しますか？</p>
-      <p style="font-size:0.65rem;color:var(--text-light);margin-bottom:10px">あとから自由に編集できます</p>
+      <p style="font-size:0.85rem;margin-bottom:6px">おすすめのタスクを追加しますか？</p>
+      <p style="font-size:0.7rem;color:var(--text-light);margin-bottom:10px">あとから自由に編集できます</p>
       <div id="wizardSuggestions" style="max-height:220px;overflow-y:auto"></div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" id="wizBtnBack" onclick="wizardBack()" style="display:none">戻る</button>
       <button class="btn btn-primary" id="wizBtnNext" onclick="wizardNext()">次へ</button>
     </div>
-  </div>
-</div>
-
-<!-- Feature 1: Cost Modal -->
-<div class="modal-overlay" id="costModalOverlay" onclick="if(event.target===this)closeCostModal()">
-  <div class="modal" style="max-width:520px">
-    <h2>💰 コスト管理</h2>
-    <div id="costContent"></div>
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeCostModal()">閉じる</button></div>
-  </div>
-</div>
-
-<!-- Feature 2: Shopping List Modal -->
-<div class="modal-overlay" id="shoppingModalOverlay" onclick="if(event.target===this)closeShoppingModal()">
-  <div class="modal" style="max-width:520px">
-    <h2>🛒 買い物リスト</h2>
-    <div class="shopping-add-row">
-      <input type="text" id="shoppingNewItem" placeholder="アイテムを追加..." onkeydown="if(event.key==='Enter'){event.preventDefault();addShoppingItem()}">
-      <button class="btn btn-primary" onclick="addShoppingItem()" style="padding:7px 12px">追加</button>
-    </div>
-    <div id="shoppingListContent" style="max-height:400px;overflow-y:auto"></div>
-    <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="clearCheckedShopping()">完了を消去</button>
-      <button class="btn btn-secondary" onclick="closeShoppingModal()">閉じる</button>
-    </div>
-  </div>
-</div>
-
-<!-- Feature 3: Report Modal -->
-<div class="modal-overlay" id="reportModalOverlay" onclick="if(event.target===this)closeReportModal()">
-  <div class="modal" style="max-width:520px">
-    <h2>📊 年間レポート</h2>
-    <div id="reportContent"></div>
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeReportModal()">閉じる</button></div>
-  </div>
-</div>
-
-<!-- Feature 4: Appliance Modal -->
-<div class="modal-overlay" id="applianceModalOverlay" onclick="if(event.target===this)closeApplianceModal()">
-  <div class="modal" style="max-width:560px">
-    <h2>🏠 家電・設備管理</h2>
-    <button class="btn btn-primary" onclick="showApplianceForm()" style="margin-bottom:10px">+ 家電を登録</button>
-    <div id="applianceForm" style="display:none;background:var(--bg);padding:12px;border-radius:10px;margin-bottom:12px">
-      <h3 id="applianceFormTitle" style="font-size:0.85rem;margin-bottom:8px">家電登録</h3>
-      <div class="form-group"><label>名前</label><input type="text" id="appName" required placeholder="例: リビングエアコン"></div>
-      <div class="form-row">
-        <div class="form-group"><label>カテゴリ</label><select id="appCategory">
-          <option value="エアコン">エアコン</option><option value="洗濯機">洗濯機</option>
-          <option value="冷蔵庫">冷蔵庫</option><option value="給湯器">給湯器</option>
-          <option value="食洗機">食洗機</option><option value="テレビ">テレビ</option>
-          <option value="電子レンジ">電子レンジ</option><option value="掃除機">掃除機</option>
-          <option value="乾燥機">乾燥機</option><option value="その他">その他</option>
-        </select></div>
-        <div class="form-group"><label>設置場所</label><input type="text" id="appLocation" placeholder="例: リビング"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>購入日</label><input type="date" id="appPurchaseDate"></div>
-        <div class="form-group"><label>保証期限</label><input type="date" id="appWarrantyEnd"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>メンテ周期（月）</label><input type="number" id="appMaintenanceCycle" min="0" placeholder="例: 6"></div>
-        <div class="form-group"><label>メモ</label><input type="text" id="appMemo" placeholder="型番など"></div>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" onclick="hideApplianceForm()">キャンセル</button>
-        <button class="btn btn-primary" onclick="saveAppliance()">保存</button>
-      </div>
-    </div>
-    <div id="applianceListContent" style="max-height:350px;overflow-y:auto"></div>
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeApplianceModal()">閉じる</button></div>
-  </div>
-</div>
-
-<!-- Feature 6: Rewards Modal -->
-<div class="modal-overlay" id="rewardsModalOverlay" onclick="if(event.target===this)closeRewardsModal()">
-  <div class="modal" style="max-width:520px">
-    <h2>🎁 ポイント & ごほうび</h2>
-    <div style="background:var(--bg);padding:10px;border-radius:8px;margin-bottom:12px">
-      <p style="font-size:0.7rem;color:var(--text-light);margin-bottom:6px">タスク完了でポイント獲得！期限前なら1.5倍、遅れると0.5倍</p>
-      <div class="shopping-add-row">
-        <input type="text" id="rewardNewName" placeholder="ごほうび名（例: 外食）">
-        <input type="number" id="rewardNewCost" placeholder="pt" style="width:70px" min="1">
-        <button class="btn btn-primary" onclick="addReward()" style="padding:7px 12px">追加</button>
-      </div>
-    </div>
-    <div id="rewardsContent"></div>
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeRewardsModal()">閉じる</button></div>
-  </div>
-</div>
-
-<!-- Feature 7: Stock Modal -->
-<div class="modal-overlay" id="stockModalOverlay" onclick="if(event.target===this)closeStockModal()">
-  <div class="modal" style="max-width:560px">
-    <h2>📦 ストック管理</h2>
-    <div style="display:flex;gap:6px;margin-bottom:10px">
-      <button class="btn btn-primary" onclick="showStockForm()">+ ストック登録</button>
-      <button class="btn btn-secondary" onclick="addLowStockToShopping()">🛒 不足分を買い物リストへ</button>
-    </div>
-    <div id="stockForm" style="display:none;background:var(--bg);padding:12px;border-radius:10px;margin-bottom:12px">
-      <h3 id="stockFormTitle" style="font-size:0.85rem;margin-bottom:8px">ストック登録</h3>
-      <div class="form-group"><label>名前</label><input type="text" id="stockName" required placeholder="例: トイレットペーパー"></div>
-      <div class="form-row">
-        <div class="form-group"><label>カテゴリ</label><input type="text" id="stockCategory" placeholder="例: 日用品"></div>
-        <div class="form-group"><label>単位</label><select id="stockUnit">
-          <option value="個">個</option><option value="本">本</option><option value="箱">箱</option>
-          <option value="袋">袋</option><option value="パック">パック</option><option value="枚">枚</option>
-          <option value="セット">セット</option><option value="kg">kg</option><option value="L">L</option>
-        </select></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>現在の在庫</label><input type="number" id="stockCurrent" min="0" value="0"></div>
-        <div class="form-group"><label>最低在庫</label><input type="number" id="stockMin" min="0" value="1"></div>
-      </div>
-      <div class="form-group"><label>最終購入日</label><input type="date" id="stockLastPurchase"></div>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" onclick="hideStockForm()">キャンセル</button>
-        <button class="btn btn-primary" onclick="saveStockItem()">保存</button>
-      </div>
-    </div>
-    <div id="stockListContent" style="max-height:350px;overflow-y:auto"></div>
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeStockModal()">閉じる</button></div>
   </div>
 </div>
 
