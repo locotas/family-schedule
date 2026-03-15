@@ -383,14 +383,56 @@ async function initFirebase(config) {
     auth = firebase.auth();
     await db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
 
-    // Listen for auth state changes
-    auth.onAuthStateChanged(user => {
+    // Listen for auth state changes - this is the single source of truth
+    auth.onAuthStateChanged(async user => {
       googleUser = user;
       if (user) {
-        // Auto-set user identity from Google profile
         currentUserName = user.displayName || 'ゲスト';
         localStorage.setItem('fs-current-user-name', currentUserName);
+        hideLoginScreen();
         updateUserBadgeWithGoogle();
+
+        // Connect to room if not already
+        if (!fbMode) {
+          // Check for invite link first: #join=ROOMCODE
+          const hash = window.location.hash;
+          const joinMatch = hash.match(/[#&]join=([A-Z0-9]{6})/i);
+          if (joinMatch) {
+            const code = joinMatch[1].toUpperCase();
+            const joined = await joinRoom(code);
+            if (joined) {
+              window.location.hash = '#schedule';
+              await autoAddGoogleMember();
+            } else {
+              alert('ルームコード「' + code + '」は見つかりません');
+            }
+          } else {
+            const savedRoom = localStorage.getItem('fs-room-code');
+            if (savedRoom) {
+              roomCode = savedRoom;
+              fbMode = true;
+              await attachListeners();
+              await autoAddGoogleMember();
+            } else {
+              setTimeout(() => showJoinRoomModal(), 300);
+            }
+          }
+        }
+
+        // Show wizard if first visit
+        if (!localStorage.getItem('fs-wizard-done') && tasks.length === 0) {
+          setTimeout(() => openWizard(), 500);
+        }
+      } else {
+        // Not logged in
+        if (localStorage.getItem('fs-login-skipped')) {
+          hideLoginScreen();
+          if (!localStorage.getItem('fs-wizard-done') && tasks.length === 0) {
+            setTimeout(() => openWizard(), 500);
+          }
+        } else {
+          showLoginScreen();
+        }
       }
       updateUserBadgeWithGoogle();
     });
@@ -2442,83 +2484,14 @@ document.addEventListener('keydown',e=>{
   updateUserBadge();
   registerSW();
   fetchWeather();
-
-  // Initialize the view router
   initRouter();
 
-  // Auto-connect Firebase with embedded config
+  // Auto-connect Firebase - auth handling is done in onAuthStateChanged (in initFirebase)
   try {
-    const ok = await initFirebase(FIREBASE_CONFIG);
-    if (ok) {
-      // Handle redirect result (mobile Google login)
-      try {
-        const redirectResult = await auth.getRedirectResult();
-        if (redirectResult && redirectResult.user) {
-          googleUser = redirectResult.user;
-          currentUserName = googleUser.displayName || 'ユーザー';
-          localStorage.setItem('fs-current-user-name', currentUserName);
-          updateUserBadgeWithGoogle();
-        }
-      } catch(e) { console.log('No redirect result:', e); }
-
-      // Wait for auth state to resolve
-      await new Promise(resolve => {
-        const unsub = auth.onAuthStateChanged(user => {
-          unsub();
-          resolve(user);
-        });
-      });
-
-      if (googleUser) {
-        // Logged in - hide login screen
-        hideLoginScreen();
-
-        // Check for invite link: #join=ROOMCODE
-        const hash = window.location.hash;
-        const joinMatch = hash.match(/[#&]join=([A-Z0-9]{6})/i);
-        if (joinMatch) {
-          const code = joinMatch[1].toUpperCase();
-          const joined = await joinRoom(code);
-          if (joined) {
-            window.location.hash = '#schedule';
-            await autoAddGoogleMember();
-          } else {
-            alert('ルームコード「' + code + '」は見つかりません');
-          }
-        } else {
-          // Reconnect to saved room
-          const savedRoom = localStorage.getItem('fs-room-code');
-          if (savedRoom) {
-            roomCode = savedRoom;
-            fbMode = true;
-            await attachListeners();
-          } else {
-            setTimeout(() => showJoinRoomModal(), 500);
-          }
-        }
-      } else {
-        // Not logged in
-        const skippedLogin = localStorage.getItem('fs-login-skipped');
-        if (skippedLogin) {
-          hideLoginScreen();
-          // Handle invite link even without login
-          const hash = window.location.hash;
-          const joinMatch = hash.match(/[#&]join=([A-Z0-9]{6})/i);
-          if (joinMatch) {
-            showLoginScreen(); // Need to login for invite links
-          }
-        }
-        // else: login screen is already visible
-      }
-    }
+    await initFirebase(FIREBASE_CONFIG);
   } catch(e) {
     console.error('Firebase auto-connect failed:', e);
-    hideLoginScreen(); // Fall back to local mode
-  }
-
-  // Show wizard on first visit (only if logged in or skipped)
-  if(!localStorage.getItem('fs-wizard-done')&&tasks.length===0&&(googleUser||localStorage.getItem('fs-login-skipped'))){
-    setTimeout(()=>openWizard(),300);
+    hideLoginScreen();
   }
 })();
 
