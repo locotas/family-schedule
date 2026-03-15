@@ -432,7 +432,7 @@ async function initFirebase(config) {
         }
       } else {
         // Not logged in (redirect already processed, so this is definitive)
-        if (localStorage.getItem('fs-login-skipped')) {
+        if (sessionStorage.getItem('fs-login-skipped')) {
           hideLoginScreen();
           if (!localStorage.getItem('fs-wizard-done') && tasks.length === 0) {
             setTimeout(() => openWizard(), 500);
@@ -516,7 +516,7 @@ function showLoginScreen() {
   if (el) el.classList.remove('hidden');
 }
 function skipLogin() {
-  localStorage.setItem('fs-login-skipped', 'true');
+  sessionStorage.setItem('fs-login-skipped', 'true');
   hideLoginScreen();
   // Show wizard if first time
   if(!localStorage.getItem('fs-wizard-done')&&tasks.length===0){setTimeout(()=>openWizard(),300)}
