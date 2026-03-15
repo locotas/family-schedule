@@ -420,11 +420,20 @@ async function googleSignIn() {
       setCurrentUser(existingMember.id);
     }
 
-    // Show room selection after login
-    const loginSection = document.getElementById('googleLoginSection');
-    const roomSection = document.getElementById('roomSelectSection');
-    if (loginSection) loginSection.style.display = 'none';
-    if (roomSection) roomSection.style.display = 'block';
+    // Hide login screen
+    hideLoginScreen();
+
+    // Check if already in a room
+    const savedRoom = localStorage.getItem('fs-room-code');
+    if (savedRoom) {
+      roomCode = savedRoom;
+      fbMode = true;
+      await attachListeners();
+      await autoAddGoogleMember();
+    } else {
+      // Show room selection
+      showJoinRoomModal();
+    }
 
     // Hide error
     const errEl = document.getElementById('googleLoginError');
@@ -440,6 +449,22 @@ async function googleSignOut() {
   if (auth) await auth.signOut();
   googleUser = null;
   updateUserBadgeWithGoogle();
+  showLoginScreen();
+}
+
+function hideLoginScreen() {
+  const el = document.getElementById('loginScreen');
+  if (el) el.classList.add('hidden');
+}
+function showLoginScreen() {
+  const el = document.getElementById('loginScreen');
+  if (el) el.classList.remove('hidden');
+}
+function skipLogin() {
+  localStorage.setItem('fs-login-skipped', 'true');
+  hideLoginScreen();
+  // Show wizard if first time
+  if(!localStorage.getItem('fs-wizard-done')&&tasks.length===0){setTimeout(()=>openWizard(),300)}
 }
 
 function updateUserBadgeWithGoogle() {
@@ -2419,42 +2444,65 @@ document.addEventListener('keydown',e=>{
   try {
     const ok = await initFirebase(FIREBASE_CONFIG);
     if (ok) {
-      // Check for invite link: #join=ROOMCODE
-      const hash = window.location.hash;
-      const joinMatch = hash.match(/[#&]join=([A-Z0-9]{6})/i);
-      if (joinMatch) {
-        const code = joinMatch[1].toUpperCase();
-        const joined = await joinRoom(code);
-        if (joined) {
-          // Clear the join param from hash, navigate to schedule
-          window.location.hash = '#schedule';
-          showJoinRoomModal();
+      // Wait for auth state to resolve
+      await new Promise(resolve => {
+        const unsub = auth.onAuthStateChanged(user => {
+          unsub();
+          resolve(user);
+        });
+      });
+
+      if (googleUser) {
+        // Logged in - hide login screen
+        hideLoginScreen();
+
+        // Check for invite link: #join=ROOMCODE
+        const hash = window.location.hash;
+        const joinMatch = hash.match(/[#&]join=([A-Z0-9]{6})/i);
+        if (joinMatch) {
+          const code = joinMatch[1].toUpperCase();
+          const joined = await joinRoom(code);
+          if (joined) {
+            window.location.hash = '#schedule';
+            await autoAddGoogleMember();
+          } else {
+            alert('ルームコード「' + code + '」は見つかりません');
+          }
         } else {
-          alert('ルームコード「' + code + '」は見つかりません');
+          // Reconnect to saved room
+          const savedRoom = localStorage.getItem('fs-room-code');
+          if (savedRoom) {
+            roomCode = savedRoom;
+            fbMode = true;
+            await attachListeners();
+          } else {
+            setTimeout(() => showJoinRoomModal(), 500);
+          }
         }
       } else {
-        // Reconnect to saved room
-        const savedRoom = localStorage.getItem('fs-room-code');
-        if (savedRoom) {
-          roomCode = savedRoom;
-          fbMode = true;
-          await attachListeners();
-        } else {
-          // No room yet - show join/create prompt
-          setTimeout(() => showJoinRoomModal(), 500);
+        // Not logged in
+        const skippedLogin = localStorage.getItem('fs-login-skipped');
+        if (skippedLogin) {
+          hideLoginScreen();
+          // Handle invite link even without login
+          const hash = window.location.hash;
+          const joinMatch = hash.match(/[#&]join=([A-Z0-9]{6})/i);
+          if (joinMatch) {
+            showLoginScreen(); // Need to login for invite links
+          }
         }
+        // else: login screen is already visible
       }
     }
   } catch(e) {
     console.error('Firebase auto-connect failed:', e);
-    // Falls back to localStorage mode silently
+    hideLoginScreen(); // Fall back to local mode
   }
 
-  // Show wizard on first visit
-  if(!localStorage.getItem('fs-wizard-done')&&tasks.length===0){setTimeout(()=>openWizard(),300)}
-
-  // Auto-prompt who are you if members exist but user not set (after everything loads)
-  setTimeout(promptWhoAreYou, 1500);
+  // Show wizard on first visit (only if logged in or skipped)
+  if(!localStorage.getItem('fs-wizard-done')&&tasks.length===0&&(googleUser||localStorage.getItem('fs-login-skipped'))){
+    setTimeout(()=>openWizard(),300);
+  }
 })();
 
 // Show join/create room modal for first-time users
