@@ -383,14 +383,7 @@ async function initFirebase(config) {
     auth = firebase.auth();
     await db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
 
-    // Process any pending redirect result FIRST (mobile Google login)
-    // This must complete before onAuthStateChanged is set up,
-    // otherwise onAuthStateChanged fires with null before redirect is processed
-    try {
-      await auth.getRedirectResult();
-    } catch(e) { /* no pending redirect, that's fine */ }
-
-    // NOW set up auth state listener - user state is correct at this point
+    // Set up auth state listener
     auth.onAuthStateChanged(async user => {
       googleUser = user;
       if (user) {
@@ -457,12 +450,13 @@ async function googleSignIn() {
   if (!auth) { alert('Firebaseの初期化に失敗しました'); return; }
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
-    // Use redirect on mobile (popup is blocked by in-app browsers)
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) {
-      await auth.signInWithRedirect(provider);
-      return; // Page will reload after redirect
+    // Check if running in a WebView (LINE, Instagram, etc.) - Google blocks sign-in there
+    const isWebView = /(Instagram|FBAN|FBAV|Line\/|Twitter|wv|WebView)/i.test(navigator.userAgent);
+    if (isWebView) {
+      alert('アプリ内ブラウザではGoogleログインが使えません。\nSafariまたはChromeで開いてください。');
+      return;
     }
+    // Always use popup (redirect has Safari ITP issues)
     const result = await auth.signInWithPopup(provider);
     googleUser = result.user;
     currentUserName = googleUser.displayName || 'ユーザー';
